@@ -1,0 +1,423 @@
+<?xml version='1.0' standalone='yes'?>
+<PLUGIN>
+
+<!--
+2011-08-15 1bw - first release
+
+This UnRaid plugin will mount any drive, which is not part of the array
+at a configureable mount point
+
+-->
+
+<FILE Name="/boot/config/plugins/drive_mount/drive_mount.png">
+<URL>http://unraid.benjaminwaller.de/drive_mount/drive_mount.png</URL>
+</FILE>
+
+<FILE Name="/boot/config/plugins/drive_mount/drive_mount.cfg">
+<INLINE>
+<![CDATA[
+# drive_mount configuration
+[]
+DRIVE_NAME=""
+DRIVE_MOUNT=""
+DRIVE_MOUNTED=""
+DRIVE_ENABLED=""
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/drive_mount/drive_mount.sh" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+
+write_config() {
+  echo "# drive_mount configuration" > /boot/config/plugins/drive_mount/drive_mount.cfg
+  for INDEX in ${!device_id[@]}; do
+	echo "[${device_id[$INDEX]}]" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+    echo "DRIVE_NAME=\"${device_disk[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+    echo "DRIVE_MOUNT=\"${device_mount[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+    echo "DRIVE_MOUNTED=\"${device_mounted[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+    echo "DRIVE_ENABLED=\"${device_enabled[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+  done
+}
+
+cfg.parser () {
+	ini="$(<$1)"                # read the file
+	ini="${ini//[/\[}"          # escape [
+	ini="${ini//]/\]}"          # escape ]
+	IFS=$'\n' && ini=( ${ini} ) # convert to line-array
+	ini=( ${ini[*]//;*/} )      # remove comments with ;
+	ini=( ${ini[*]//#*/} )      # remove comments with #
+	ini=( ${ini[*]/\    =/=} )  # remove tabs before =
+	ini=( ${ini[*]/=\   /=} )   # remove tabs be =
+	ini=( ${ini[*]/\ =\ /=} )   # remove anything with a space around =
+	ini=( ${ini[*]/#\\[/\}$'\n'cfg.section.} ) # set section prefix
+	ini=( ${ini[*]/%\\]/ \(} )    # convert text2function (1)
+	ini=( ${ini[*]/=/=\( } )    # convert item to array
+	ini=( ${ini[*]/%/ \)} )     # close array parenthesis
+	ini=( ${ini[*]/%\\ \)/ \\} ) # the multiline trick
+	ini=( ${ini[*]/%\( \)/\(\) \{} ) # convert text2function (2)
+	ini=( ${ini[*]/%\} \)/\}} ) # remove extra parenthesis
+	ini[0]="" # remove first element
+	ini[${#ini[*]} + 1]='}'    # add the last brace
+	eval "$(echo "${ini[*]}")" # eval the resul
+}
+
+cfg.writer ()
+{
+    IFS=' '$'\n'
+    fun="$(declare -F)"
+    fun="${fun//declare -f/}"
+    for f in $fun; do
+        [ "${f#cfg.section}" == "${f}" ] && continue
+        item="$(declare -f ${f})"
+        item="${item##*\{}"
+        item="${item%\}}"
+        item="${item//=*;/}"
+        vars="${item//=*/}"
+        eval $f
+        echo "[${f#cfg.section.}]"
+        for var in $vars; do
+            echo $var=\"${!var}\"
+        done
+    done
+}
+
+update_drives() {
+	
+	function exists_name {
+	    for INDEX in ${!drive_name[@]}; do
+			if [ "${drive_name[$INDEX]}" == "$1" ]; then
+	            echo "$INDEX"
+	        fi
+	    done
+	}
+	
+	# if disks.ini is found, check for new drives and remove array drives from list
+	if [ -f /var/local/emhttp/disks.ini ]; then
+		exec </var/local/emhttp/disks.ini
+		let a=0
+		while read ini
+		do
+		    case $ini in
+		    deviceSb*)
+		    continue
+		    ;;
+		    device*)
+		      device=`echo "$ini" | sed -e "s/\([^=]*\)=\([^=]*\)/\2/" -e "s/\\r//" -e "s/\"//g"`
+		      drive_name[$a]="$device"
+		      let a=a+1
+		    esac
+		done
+		
+		let a=0
+		disks=`ls --time-style='+%Y-%m-%d %I:%M%p' /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "ata" | cut -c62-`
+		while IFS='\n' read -ra VAR; do 
+			for i in "${VAR[@]}"; do
+				disk=`echo $i | cut -d " " -f 3 | cut -c7-`
+				id=`echo $i | cut -d " " -f 1`
+
+				m=`mount | grep "/dev/$disk" | cut -d " " -f 3`
+
+				# check if not part of array
+				if [ "$(exists_name $disk)" == "" ]; then
+
+					fn_exists "cfg.section.$id"
+					if [ $? -eq 0 ]; then
+						cfg.section.$id
+						old_mount=$DRIVE_MOUNT
+						old_enabled=$DRIVE_ENABLED
+					else
+						old_mount=""
+						old_enabled=""
+					fi
+
+					if [ "$m" != "" ]; then
+						enabled="enable"
+					elif [ "$old_enabled" == "" ]; then
+						enabled="disable"
+					else
+						enabled=$old_enabled
+					fi
+
+					if [[ "$old_mount" == "" || "$old_mount" == "$m" ]]; then
+						mpoint=$m
+					elif [ "$m" == "" ]; then
+						mpoint=$old_mount
+					fi
+
+					if [ "$m" != "" ]; then
+						mounted="enable"
+					else
+						mounted="disable"
+					fi
+
+					device_disk[$a]="$disk"
+					device_id[$a]="$id"
+					device_mount[$a]="$mpoint"
+					device_mounted[$a]="$mounted"
+					device_enabled[$a]="$enabled"
+					let a=a+1
+				fi
+			done
+		done <<< "$disks"
+	else # otherwise just check if drives in config are mounted
+		let a=0
+		
+		disks=`ls --time-style='+%Y-%m-%d %I:%M%p' /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "ata" | cut -c62-`
+		while IFS='\n' read -ra VAR; do 
+			for i in "${VAR[@]}"; do
+				disk=`echo $i | cut -d " " -f 3 | cut -c7-`
+				id=`echo $i | cut -d " " -f 1`
+
+				m=`mount | grep "/dev/$disk" | cut -d " " -f 3`
+				
+				fn_exists "cfg.section.$id"
+				if [ $? -eq 0 ]; then
+					cfg.section.$id
+					
+					if [ "$m" != "" ]; then
+						mounted="enable"
+					else
+						mounted="disable"
+					fi
+					
+					device_disk[$a]="$disk"
+					device_id[$a]="$id"
+					device_mount[$a]=$DRIVE_MOUNT
+					device_mounted[$a]="$mounted"
+					device_enabled[$a]="$DRIVE_ENABLED"
+					let a=a+1
+					
+				else
+					continue
+				fi
+			done
+		done <<< "$disks"
+	fi
+	
+}
+
+mount_all()
+{
+	update_drives
+	for INDEX in "${!device_id[@]}"; do
+		if [[ ${device_enabled[$INDEX]} == "enable" && ${device_mounted[$INDEX]} != "enable" ]]; then
+			if [[ ! -d ${device_mount[$INDEX]} || ! "$(ls -A ${device_mount[$INDEX]})" ]]; then
+				echo mounting ${device_disk[$INDEX]}
+				mkdir -p ${device_mount[$INDEX]}
+				mount /dev/disk/by-id/${device_id[$INDEX]}-part1 ${device_mount[$INDEX]}
+			fi
+		fi
+	done
+	
+	update_drives
+	write_config
+}
+
+enable_drive()
+{
+	update_drives
+	
+	function exists_id {
+	    for INDEX in ${!device_id[@]}; do
+			if [ "${device_id[$INDEX]}" == "$1" ]; then
+	            echo "$INDEX"
+	        fi
+	    done
+	}
+	
+	a=$(exists_id $1)
+	fn_exists "cfg.section.$1"
+	if [ $? -eq 0 ]; then
+		cfg.section.$1
+		
+		if [ $DRIVE_MOUNTED != "enable" ]; then
+			device_mount[$a]=$2
+			
+			if [[ ! -d $2 || ! "$(ls -A $2)" ]]; then
+				mkdir -p $2
+				mount /dev/disk/by-id/$1-part1 $2
+				device_enabled[$a]="enable"
+			fi
+			write_config
+		fi
+	fi
+}
+
+disable_drive()
+{
+	update_drives
+	
+	function exists_id {
+	    for INDEX in ${!device_id[@]}; do
+			if [ "${device_id[$INDEX]}" == "$1" ]; then
+	            echo "$INDEX"
+	        fi
+	    done
+	}
+	
+	a=$(exists_id $1)
+	fn_exists "cfg.section.$1"
+	if [ $? -eq 0 ]; then
+		cfg.section.$1
+		
+		device_enabled[$a]="disable"
+		if [ $DRIVE_MOUNTED == "enable" ]; then
+			umount /dev/disk/by-id/$1-part1
+			rmdir $DRIVE_MOUNT
+			write_config
+		elif [ $2 != "" ]; then
+			device_mount[$a]=$2
+			write_config
+		fi
+	fi
+}
+
+fn_exists()
+{
+    type $1 2>/dev/null | grep -q 'is a function'
+}
+
+
+# read our configuration
+cfg.parser '/boot/config/plugins/drive_mount/drive_mount.cfg'
+
+
+case "$1" in
+'update')
+  update_drives
+  write_config
+  ;;
+'enable')
+  enable_drive $2 $3
+  ;;
+'disable')
+  disable_drive $2 $3
+  ;;
+'mount')
+  mount_all
+  ;;
+*)
+  echo "usage $0 enable|disable|mount|update"
+esac
+
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/drive_mount/drive_mount.page">
+<INLINE>
+<![CDATA[
+Menu="OtherSettings"
+Icon="drive_mount.png"
+Version="0.1-1bw"
+Author="Benjamin Waller"
+Type="php"
+Title="Mount Drives"
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/drive_mount/drive_mount.png">
+<LOCAL>/boot/config/plugins/drive_mount/drive_mount.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/drive_mount/drive_mount.php">
+<INLINE>
+<![CDATA[
+<?PHP
+shell_exec("/boot/config/plugins/drive_mount/drive_mount.sh update");
+$drive_mount_cfg = parse_ini_file( "/boot/config/plugins/drive_mount/drive_mount.cfg",TRUE);
+
+
+?>
+<script type="text/javascript">
+function checkMOUNTED(form,mounted)
+{
+   if (mounted == "enable") {
+      form.arg3.readOnly = true;
+   }
+   else {
+      form.arg3.readOnly = (form.arg1.value == "enable");
+   }
+}
+</script>
+
+
+<?PHP
+$total_drives = count($drive_mount_cfg);
+$i++;
+foreach ($drive_mount_cfg as $drive_id => $drive_values)
+{
+	
+?>
+   <form name="drive_mount_settings_<?=$i?>" method="POST" action="/update.htm" target="progressFrame">
+      <input type="hidden" name="cmd" value="/boot/config/plugins/drive_mount/drive_mount.sh">
+	  <input type="hidden" name="arg2" value="<?=$drive_id?>">
+      <table class="settings">
+         <tr>
+         <td>Drive:</td>
+         <td><?=$drive_id?> (<?=$drive_values['DRIVE_NAME']?>)</td>
+         </tr>
+		 <tr>
+         <td>Enable Drive:</td>
+         <td><select name="arg1" size="1"  onChange="checkMOUNTED(this.form,'<?=$drive_values['DRIVE_MOUNTED']?>');">
+            <?=mk_option($drive_values['DRIVE_ENABLED'], "disable", "No");?>
+            <?=mk_option($drive_values['DRIVE_ENABLED'], "enable", "Yes");?>
+            </select></td>
+         </tr>
+         <tr>
+         <td>Mount directory:</td>
+         <td><input type="text" name="arg3" maxlength="100" value="<?=$drive_values['DRIVE_MOUNT'];?>"></td>
+         </tr>
+		 <tr>
+         <tr>
+         <td></td>
+         <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
+         </tr>
+      </table>
+   </form>
+
+	<script type="text/javascript">
+		checkMOUNTED(document.drive_mount_settings_<?=$i?>,'<?=$drive_values['DRIVE_MOUNTED']?>');
+	</script>
+
+<?PHP
+if ($i < $total_drives) {
+	echo "<hr>";
+}
+$i++
+
+?>
+<?PHP
+}
+?>
+
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/drive_mount-install" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+# update drives and mount enabled ones
+/boot/config/plugins/drive_mount/drive_mount.sh update
+/boot/config/plugins/drive_mount/drive_mount.sh mount
+
+# clean up
+rm /tmp/drive_mount-install
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/var/log/plugins/drive_mount">
+<INLINE>
+<![CDATA[
+
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>

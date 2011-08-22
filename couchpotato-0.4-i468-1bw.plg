@@ -1,0 +1,392 @@
+<?xml version='1.0' standalone='yes'?>
+<PLUGIN>
+
+<!--
+2011-08-19 0.1-1bw - first release
+2011-08-20 0.2-1bw - added support for port change, some bug fixes
+2011-08-21 0.3-1bw - support for extra config dir, install to ramdisk, drop of sabnzbddependencies package
+2011-08-22 0.4-1bw - fixed a bug, when installed to ramdisk
+
+This Plugin installs and controls couchpotato for UnRaid.
+All dependencies are installed as needed and everything is controlable from the webgui
+-->
+
+<FILE Name="/boot/packages/python-2.6.4-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.1/slackware/d/python-2.6.4-i486-1.txz</URL>
+<MD5>4a78fd47440409b56b24586bf856170d</MD5>
+</FILE>
+
+<FILE Name="/boot/config/plugins/couchpotato/couchpotato.png">
+<URL>http://unraid.benjaminwaller.de/couchpotato/couchpotato.png</URL>
+</FILE>
+
+<!-- clean up previous install -->
+<FILE Name="/tmp/couchpotato-cleanup" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+rm -f /etc/rc.d/rc.couchpotato
+rm -f -R /usr/local/emhttp/plugins/couchpotato
+
+rm /tmp/couchpotato-cleanup
+]]>
+</INLINE>
+</FILE>
+
+
+<FILE Name="/boot/config/plugins/couchpotato/couchpotato.cfg">
+<INLINE>
+<![CDATA[
+# couchpotato configuration
+SERVICE="disable"
+INSTALLDIR="/usr/local/couchpotato"
+DATADIR="/usr/local/couchpotato"
+RUNAS="nobody"
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/etc/rc.d/rc.couchpotato" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/sh
+# Start/stop/restart/enable/disable couchpotato.
+
+couchpotato_start() {
+  # no-op if not enabled
+  if [ $SERVICE != "enable" ]; then
+    return
+  fi
+  # no-op if already running
+  if [ -r /var/run/couchpotato/couchpotato.pid ]; then
+    return
+  fi
+  
+  # if directory doesn't exist or couchpotato is not found, install it
+  if [[ "$INSTALLDIR" != "" &&  ! -e "$INSTALLDIR/CouchPotato.py" ]]; then
+    couchpotato_install
+  fi
+  
+  CMDLINE="sudo -u $RUNAS python $INSTALLDIR/CouchPotato.py -d --datadir $DATADIR --pidfile /var/run/couchpotato/couchpotato.pid > /dev/null 2>&1"
+  echo -n "Starting couchpotato:  $CMDLINE"
+  $CMDLINE
+  echo
+  
+  while [ ! -e /var/run/couchpotato/couchpotato.pid ]; do
+	sleep 1
+  done
+
+}
+
+couchpotato_stop() {
+  # no-op if not running
+  if [ ! -r /var/run/couchpotato/couchpotato.pid ]; then
+    return
+  fi
+
+  echo -n "Stopping couchpotato..."
+  sleep 0.5
+  echo
+  kill $(cat /var/run/couchpotato/couchpotato.pid)
+
+  while [ -e /var/run/couchpotato/couchpotato.pid ]; do
+	sleep 1
+  done
+
+  echo
+}
+
+couchpotato_restart() {
+  couchpotato_stop
+  sleep 1
+  couchpotato_start
+}
+
+write_config() {
+  echo "# couchpotato configuration" > /boot/config/plugins/couchpotato/couchpotato.cfg
+  echo "SERVICE=\"$SERVICE\"" >> /boot/config/plugins/couchpotato/couchpotato.cfg
+  echo "INSTALLDIR=\"$INSTALLDIR\"" >> /boot/config/plugins/couchpotato/couchpotato.cfg
+  echo "DATADIR=\"$DATADIR\"" >> /boot/config/plugins/couchpotato/couchpotato.cfg
+  echo "RUNAS=\"$RUNAS\"" >> /boot/config/plugins/couchpotato/couchpotato.cfg
+}
+
+couchpotato_enable() {
+  # if not already enabled, enable it
+  if [ "$SERVICE" != "enable" ]; then
+    SERVICE=enable
+  
+    INSTALLDIR="$3"
+	DATADIR="$4"
+	
+	if [ $DATADIR == "" ]; then
+	  $DATADIR=$INSTALLDIR
+	fi
+	
+	if [ $RUNAS != $1 ]; then
+		chown -R $1:users "$INSTALLDIR"
+	fi
+	
+	RUNAS="$1"
+	PORT="$2"
+	
+	# create couchpotato user if necessary
+	if [[ $RUNAS != "nobody" && $RUNAS != "root" ]]; then
+		if ( ! grep -q ^$RUNAS /etc/passwd ); then
+	  		useradd -r -g users -d / -s /bin/false $RUNAS &> /dev/null
+	  		cp /etc/passwd /etc/shadow /boot/config
+		fi
+	fi
+	
+	#change port
+	if [ -e "$DATADIR/config.ini" ]; then
+		mv "$DATADIR/config.ini" "$DATADIR/config.old"
+		sed 's/^port = [0-9]*/port = '$PORT'/' "$DATADIR/config.old" > "$DATADIR/config.ini"
+		chown $RUNAS:users "$DATADIR/config.ini"
+		rm "$DATADIR/config.old"
+	else 
+		mkdir -p "$DATADIR"
+		chown $RUNAS:users "$DATADIR"
+		echo "[global]" > "$DATADIR/config.ini"
+		echo "port = $PORT" >> "$DATADIR/config.ini"
+		echo "host = $(ifconfig  | grep 'inet addr:'| grep -v '127.0.0.1' | cut -d: -f2 | grep -v '^5' | awk '{ print $1}')" >> "$DATADIR/config.ini"
+		chown $RUNAS:users "$DATADIR/config.ini"
+	fi
+	
+    write_config
+  fi
+
+  # enabling also starts it
+  couchpotato_start
+}
+
+couchpotato_disable() {
+  couchpotato_stop
+  SERVICE=disable
+  write_config
+}
+
+couchpotato_install() {
+	echo "installing latest Version of couchpotato"
+	
+	if [ ! -e "$INSTALLDIR" ]; then 
+		mkdir -p "$(dirname $INSTALLDIR)"
+    fi
+	
+	cd /tmp
+	wget -q -O couchpotato.tar.gz --no-check-certificate "http://github.com/RuudBurger/CouchPotato/tarball/master"
+	tar -xf /tmp/couchpotato.tar.gz -C $(dirname $INSTALLDIR)
+	mv $(dirname $INSTALLDIR)/RuudBurger* $INSTALLDIR
+	chown -R $RUNAS:users "$INSTALLDIR"
+	rm /tmp/couchpotato.tar.gz
+}
+
+# read our configuration
+source /boot/config/plugins/couchpotato/couchpotato.cfg
+
+case "$1" in
+'start')
+  couchpotato_start
+  ;;
+'stop')
+  couchpotato_stop
+  ;;
+'restart')
+  couchpotato_restart
+  ;;
+'enable')
+  couchpotato_enable $2 $3 $4 $5
+  ;;
+'disable')
+  couchpotato_disable
+  ;;
+'install')
+  couchpotato_install
+  ;;
+*)
+  echo "usage $0 start|stop|restart|enable|disable|update"
+esac
+
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/couchpotato/couchpotato.page">
+<INLINE>
+<![CDATA[
+Menu="NetworkServices"
+Icon="couchpotato.png"
+Version="0.4-1bw"
+Author="Benjamin Waller"
+Type="php"
+Title="CouchPotato"
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/couchpotato/couchpotato.png">
+<LOCAL>/boot/config/plugins/couchpotato/couchpotato.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/couchpotato/couchpotato.php">
+<INLINE>
+<![CDATA[
+<?PHP
+$couchpotato_cfg = parse_ini_file( "/boot/config/plugins/couchpotato/couchpotato.cfg");
+$couchpotato_running = file_exists( "/var/run/couchpotato/couchpotato.pid") ? "yes" : "no";
+
+//get couchpotato config
+if (file_exists($couchpotato_cfg["DATADIR"]."/config.ini"))
+{
+	$ff = file_GET_contents($couchpotato_cfg["DATADIR"]."/config.ini");
+	$data = explode("\n",$ff);
+	foreach ($data as $d) {
+		if ( substr($d,0,1) != "#") {
+			ereg("([^=]*)=([^$]*)", $d, $regs);
+			$couchconfig[trim($regs[1])] = trim(str_replace("\"", "", $regs[2]));
+		}
+	}
+	$couch_port = $couchconfig["port"];
+}
+else
+{
+	$couch_port = "5000";
+}
+
+?>
+   <form name="couchpotato_settings" method="POST" action="/update.htm" target="progressFrame">
+      <input type="hidden" name="cmd" value="/etc/rc.d/rc.couchpotato">
+      <table class="settings">
+         <tr>
+         <td>Enable CouchPotato:</td>
+         <td><select name="arg1" size="1"  onChange="checkINSTALLDIR(this.form);">
+            <?=mk_option($couchpotato_cfg['SERVICE'], "disable", "No");?>
+            <?=mk_option($couchpotato_cfg['SERVICE'], "enable", "Yes");?>
+            </select></td>
+         </tr>
+         <tr>
+         <td>Install directory:</td>
+         <td><input type="text" name="arg4" maxlength="60" value="<?=$couchpotato_cfg['INSTALLDIR'];?>"></td>
+         </tr>
+		 <tr>
+         <td>Data directory:</td>
+         <td><input type="checkbox" name="use_data" id="use_data" <?=($couchpotato_cfg['DATADIR']!=$couchpotato_cfg['INSTALLDIR'])?"checked=\"checked\"":"";?>  onChange="checkDATADIR(this.form);"> <input type="text" name="arg5" maxlength="60" value="<?=$couchpotato_cfg['DATADIR'];?>"></td>
+         </tr>
+		 <tr>
+         <td>Port:</td>
+         <td><input type="text" name="arg3" maxlength="40" value="<?=$couch_port;?>"></td>
+         </tr>
+		 <tr>
+         <td>Run as user:</td>
+         <td><select name="runas" size="1"  onChange="checkUSER(this.form);">
+            <?=mk_option($couchpotato_cfg['RUNAS'], "nobody", "nobody");?>
+            <?=mk_option($couchpotato_cfg['RUNAS'], "root", "root");?>
+			<option value='other'<?=($couchpotato_cfg['RUNAS'] != "root" && $couchpotato_cfg['RUNAS'] != "nobody")?" selected=yes":"" ;?>>other</option>
+            </select><input type="text" name="arg2" maxlength="40" value="<?=$couchpotato_cfg['RUNAS'];?>"></td>
+         </tr>
+         <tr>
+         <td></td>
+         <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
+         </tr>
+      </table>
+   </form>
+<? if ($couchpotato_running=="yes"): ?>
+     <hr>
+     <p class=ContentTitle><a href="http://<?=$var['NAME'];?>:<?=$couch_port;?>" target="_blank">CouchPotato</a> is running</p>
+<? endif; ?>
+
+<script type="text/javascript">
+function checkINSTALLDIR(form)
+{
+   if ("<?=$couchpotato_running;?>" == "yes") {
+      form.arg2.readOnly = true;
+      form.arg3.readOnly = true;
+	  form.arg4.readOnly = true;
+	  form.arg5.readOnly = true;
+	  form.runas.disabled = true;
+	  form.use_data.disabled = true;
+   }
+   else {
+      form.arg2.readOnly = (form.arg1.value == "enable");
+      form.arg3.readOnly = (form.arg1.value == "enable");
+      form.arg4.readOnly = (form.arg1.value == "enable");
+      form.arg5.readOnly = (form.arg1.value == "enable");
+      form.runas.disabled = (form.arg1.value == "enable");
+	  form.use_data.disabled = (form.arg1.value == "enable");
+   }
+}
+function checkUSER(form)
+{
+	if (form.runas.selectedIndex < 2 ) {
+		form.arg2.value = form.runas.options[form.runas.selectedIndex].value;
+		form.arg2.type = "hidden";
+	} else {
+		form.arg2.value = "<?=$couchpotato_cfg['RUNAS'];?>";
+		form.arg2.type = "text";
+	}
+}
+function checkDATADIR(form)
+{
+	if (form.use_data.checked == false ) {
+		form.arg5.value = form.arg4.value;;
+		form.arg5.type = "hidden";
+	} else {
+		form.arg5.value = "<?=$couchpotato_cfg['DATADIR'];?>";
+		form.arg5.type = "text";
+	}
+}
+
+checkINSTALLDIR(document.couchpotato_settings);
+checkUSER(document.couchpotato_settings);
+checkDATADIR(document.couchpotato_settings);
+</script>
+
+]]>
+</INLINE>
+</FILE>
+
+<!-- event handler -->
+<FILE Name="/usr/local/emhttp/plugins/couchpotato/event/disks_mounted" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+/etc/rc.d/rc.couchpotato start
+]]>
+</INLINE>
+</FILE>
+
+<!-- event handler -->
+<FILE Name="/usr/local/emhttp/plugins/couchpotato/event/unmounting_disks" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+/etc/rc.d/rc.couchpotato stop
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/couchpotato-install" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+# include our config vars
+source /boot/config/plugins/couchpotato/couchpotato.cfg
+
+# create couchpotato-writable directory for pid file
+if [ ! -e /var/run/couchpotato ]; then
+  mkdir /var/run/couchpotato
+  chown $RUNAS:users /var/run/couchpotato
+  chmod 0777 /var/run/couchpotato
+fi
+
+rm /tmp/couchpotato-install
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/var/log/plugins/couchpotato">
+<INLINE>
+<![CDATA[
+
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>
