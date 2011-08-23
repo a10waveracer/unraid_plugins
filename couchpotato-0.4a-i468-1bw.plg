@@ -6,6 +6,7 @@
 2011-08-20 0.2-1bw - added support for port change, some bug fixes
 2011-08-21 0.3-1bw - support for extra config dir, install to ramdisk, drop of sabnzbddependencies package
 2011-08-22 0.4-1bw - fixed a bug, when installed to ramdisk
+2011-08-23 0.4a-1bw - fixed a dependency bug
 
 This Plugin installs and controls couchpotato for UnRaid.
 All dependencies are installed as needed and everything is controlable from the webgui
@@ -14,6 +15,11 @@ All dependencies are installed as needed and everything is controlable from the 
 <FILE Name="/boot/packages/python-2.6.4-i486-1.txz" Run="upgradepkg --install-new">
 <URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.1/slackware/d/python-2.6.4-i486-1.txz</URL>
 <MD5>4a78fd47440409b56b24586bf856170d</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/sqlite-3.6.23.1-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.1/slackware/ap/sqlite-3.6.23.1-i486-1.txz</URL>
+<MD5>fdd760aef330ad8821592fede8e3bd61</MD5>
 </FILE>
 
 <FILE Name="/boot/config/plugins/couchpotato/couchpotato.png">
