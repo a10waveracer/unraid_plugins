@@ -1,0 +1,288 @@
+<?xml version='1.0' standalone='yes'?>
+<PLUGIN>
+
+<!--
+2011-08-19 0.1-1bw - first release
+
+-->
+
+<FILE Name="/boot/config/plugins/inadyn/inadyn-0.1.98.1-bin.tar.gz">
+<URL>http://unraid.benjaminwaller.de/inadyn/inadyn-0.1.98.1-bin.tar.gz</URL>
+<MD5>c099e7b1f70611843891a32d2e91de59</MD5>
+</FILE>
+
+<FILE Name="/boot/config/plugins/inadyn/inadyn.png">
+<URL>http://unraid.benjaminwaller.de/inadyn/inadyn.png</URL>
+</FILE>
+
+<!-- clean up previous install -->
+<FILE Name="/tmp/inadyn-cleanup" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+rm -f /etc/rc.d/rc.inadyn
+rm -f -R /usr/local/emhttp/plugins/inadyn
+
+rm /tmp/inadyn-cleanup
+]]>
+</INLINE>
+</FILE>
+
+
+<FILE Name="/boot/config/plugins/inadyn/inadyn.cfg">
+<INLINE>
+<![CDATA[
+SERVICE="disable"
+SYSTEM=
+USER=
+PASSWORD=
+ALIAS=
+PERIOD=
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/etc/rc.d/rc.inadyn" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/sh
+
+inadyn_start() {
+	if [ $SERVICE != "enable" ]; then
+		return
+	fi
+	
+	# no-op if already running
+	if [ -r /var/run/inadyn/inadyn.pid ]; then
+		return
+	fi
+	
+	CMDLINE="inadyn --background --verbose 1 --logfile /var/log/inadyn.log --pidfile /var/run/inadyn/inadyn.pid --system $SYSTEM --username $USER --password $PASSWORD --period $PERIOD --alias $ALIAS"
+	echo -n "Starting inadyn..."
+	$CMDLINE
+	echo ""
+	
+	#while [ ! -e /var/run/inadyn/inadyn.pid  ]; do
+	#	sleep 1
+	#done
+}
+
+inadyn_stop() {
+	if [ ! -r /var/run/inadyn/inadyn.pid ];then
+		return
+	fi
+	PID=$(cat /var/run/inadyn/inadyn.pid)
+	echo "Stopping inadyn..."
+	kill $PID
+	rm /var/run/inadyn/inadyn.pid
+}
+
+inadyn_enable() {
+	if [ "$SERVICE" != "enable" ]; then
+	    SERVICE=enable
+
+		SYSTEM="$1"
+		USER="$2"
+	    PASSWORD="$3"
+		ALIAS="$4"
+		PERIOD="$5"
+
+	    write_config
+	  fi
+
+	  # enabling also starts it
+	  inadyn_start
+}
+
+inadyn_disable() {
+	inadyn_stop
+	SERVICE=disable
+	write_config
+}
+
+write_config() {
+	echo "SERVICE=\"$SERVICE\"" > /boot/config/plugins/inadyn/inadyn.cfg
+	echo "SYSTEM=\"$SYSTEM\"" >> /boot/config/plugins/inadyn/inadyn.cfg
+	echo "USER=\"$USER\"" >> /boot/config/plugins/inadyn/inadyn.cfg
+	echo "PASSWORD=\"$PASSWORD\"" >> /boot/config/plugins/inadyn/inadyn.cfg
+	echo "ALIAS=\"$ALIAS\"" >> /boot/config/plugins/inadyn/inadyn.cfg
+	echo "PERIOD=\"$PERIOD\"" >> /boot/config/plugins/inadyn/inadyn.cfg
+}
+
+# read our configuration
+source /boot/config/plugins/inadyn/inadyn.cfg
+
+case "$1" in
+'start')
+	inadyn_start
+	;;
+'stop')
+	inadyn_stop
+	;;
+'restart')
+	inadyn_restart
+	;;
+'enable')
+	inadyn_enable $2 $3 $4 $5 $6
+	;;
+'disable')
+	inadyn_disable
+	;;
+*)
+  echo "usage $0 start|stop|restart|enable|disable"
+esac
+
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/inadyn/inadyn.page">
+<INLINE>
+<![CDATA[
+Menu="NetworkServices"
+Icon="inadyn.png"
+Version="0.98.1-1bw"
+Author="Benjamin Waller"
+Type="php"
+Title="Dynamic DNS"
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/inadyn/inadyn.png">
+<LOCAL>/boot/config/plugins/inadyn/inadyn.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/inadyn/inadyn.php">
+<INLINE>
+<![CDATA[
+<?PHP
+$inadyn_cfg = parse_ini_file( "/boot/config/plugins/inadyn/inadyn.cfg");
+$inadyn_running = file_exists( "/var/run/inadyn/inadyn.pid");
+?>
+   <form name="inadyn_settings" method="POST" action="/update.htm" target="progressFrame">
+      <input type="hidden" name="cmd" value="/etc/rc.d/rc.inadyn">
+      <table class="settings">
+         <tr>
+         <td>Enable inadyn:</td>
+         <td><select name="arg1" size="1" onChange="checkINSTALLDIR(this.form);">
+            <?=mk_option($inadyn_cfg['SERVICE'], "disable", "No");?>
+            <?=mk_option($inadyn_cfg['SERVICE'], "enable", "Yes");?>
+            </select></td>
+         </tr>
+		 <tr>
+         <td>Service:</td>
+         <td><select name="systemselect" size="1" onChange="checkSYSTEM(this.form);">
+            <?=mk_option($inadyn_cfg['SYSTEM'], "dyndns@dyndns.org", "dyndns.org(dyndns)");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "statdns@dyndns.org", "dyndns.org(statdns)");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "customdns@dyndns.org", "dyndns.org(custom)");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "default@freedns.afraid.org", "freedns.afraid.org");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "default@zoneedit.com", "www.zoneedit.com");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "default@no-ip.com", "www.no-ip.com");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "default@easydns.com", "easydns.com");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "default@tzo.com", "tzo.com");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "dyndns@3322.org", "3322.org");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "default@dnsomatic.com", "dnsomatic.com");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "ipv6tb@he.net", "tunnelbroker.net");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "default@dynsip.org", "dynsip.org");?>
+            <?=mk_option($inadyn_cfg['SYSTEM'], "default@sitelutions.com", "sitelutions.com");?>
+            </select><input type="hidden" name="arg2" value="<?=$inadyn_cfg['SYSTEM'];?>"></td>
+         </tr>
+         <tr>
+         <td>Username:</td>
+         <td><input type="text" name="arg3" maxlength="60" value="<?=$inadyn_cfg['USER'];?>"></td>
+         </tr>
+         <tr>
+         <td>Password:</td>
+         <td><input type="password" name="arg4" maxlength="60" value="<?=$inadyn_cfg['PASSWORD'];?>"></td>
+         </tr>
+         <tr>
+         <td>Aliasdomain:</td>
+         <td><input type="text" name="arg5" maxlength="60" value="<?=$inadyn_cfg['ALIAS'];?>"></td>
+         </tr>
+		 <tr>
+         <td>Update period:</td>
+         <td><select name="periodselect" size="1" onChange="checkPERIOD(this.form);">
+            <?=mk_option($inadyn_cfg['PERIOD'], "60", "1 min");?>
+            <?=mk_option($inadyn_cfg['PERIOD'], "120", "2 min");?>
+            <?=mk_option($inadyn_cfg['PERIOD'], "300", "5 min");?>
+            <?=mk_option($inadyn_cfg['PERIOD'], "600", "10 min");?>
+            <?=mk_option($inadyn_cfg['PERIOD'], "1800", "30 min");?>
+            <?=mk_option($inadyn_cfg['PERIOD'], "3600", "1 hour");?>
+            <?=mk_option($inadyn_cfg['PERIOD'], "7200", "2 hour");?>
+            <?=mk_option($inadyn_cfg['PERIOD'], "21600", "6 hour");?>
+            <?=mk_option($inadyn_cfg['PERIOD'], "43200", "12 hour");?>
+            <?=mk_option($inadyn_cfg['PERIOD'], "86400", "24 hour");?>
+            </select><input type="hidden" name="arg6" value="<?=$inadyn_cfg['PERIOD'];?>"></td>
+         </tr>
+         <tr>
+         <td></td>
+         <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
+         </tr>
+      </table>
+   </form>
+<? if ($inadyn_running == true): ?>
+     <hr>
+     <p class=ContentTitle>inadyn service is running</p>
+<? endif; ?>
+
+<script type="text/javascript">
+function checkINSTALLDIR(form)
+{
+   if ("<?=$sabnzbd_running;?>" == "yes") {
+      form.systemselect.disabled = true;
+      form.arg3.readOnly = true;
+      form.arg4.readOnly = true;
+      form.arg5.readOnly = true;
+      form.periodselect.disabled = true;
+   }
+   else {
+      form.systemselect.disabled = (form.arg1.value == "enable");
+      form.arg3.readOnly = (form.arg1.value == "enable");
+	  form.arg4.readOnly = (form.arg1.value == "enable");
+	  form.arg5.readOnly = (form.arg1.value == "enable");
+	  form.periodselect.disabled = (form.arg1.value == "enable");
+   }
+}
+
+function checkSYSTEM(form)
+{
+   form.arg2.value = form.systemselect.value;
+}
+
+function checkPERIOD(form)
+{
+   form.arg6.value = form.periodselect.value;
+}
+
+checkINSTALLDIR(document.inadyn_settings);
+checkSYSTEM(document.inadyn_settings);
+checkPERIOD(document.inadyn_settings);
+</script>
+
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/tmp/inadyn-install" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+# install inadyn to /usr/sbin
+tar -xf /boot/config/plugins/inadyn/inadyn-0.1.98.1-bin.tar.gz -C /usr/sbin
+
+# start inadyn if enabled
+/etc/rc.d/rc.inadyn start
+
+rm /tmp/inadyn-install
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/var/log/plugins/inadyn">
+<INLINE>
+<![CDATA[
+
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>
