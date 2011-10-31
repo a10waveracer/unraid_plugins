@@ -84,8 +84,17 @@ sickbeard_start() {
   $CMDLINE
   echo
   
-  while [ ! -e /var/run/sickbeard/sickbeard.pid ]; do
-	sleep 1
+  sleep 2
+  for i in {1..5}; do
+	if [ -z "$(ps -ef | grep SickBeard | grep -v grep | awk '{print$2}')" ]; then
+	#if [ -e /var/run/sickbeard/sickbeard.pid ]; then
+		echo "Check $i: SickBeard has NOT started yet, something is maybe wrong!"
+  		sleep 2
+  	else
+		echo "SickBeard IS running"
+		echo "(please refresh the page)"
+		break
+	fi
   done
   
   echo -n "please refresh the page"
