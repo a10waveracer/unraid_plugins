@@ -14,6 +14,8 @@ This Plugin installs and controls SABnzbd+ for UnRaid.
 All dependencies are installed as needed and everything is controlable from the webgui
 
 Also this plugin enables easy updates for SABnzbd, since the app doesn't have it's own update routine
+
+Filename: sabnzbd-0.4c-i468-bw.plg
 -->
 
 <FILE Name="/boot/packages/python-2.6.4-i486-1.txz" Run="upgradepkg --install-new">

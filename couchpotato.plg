@@ -10,6 +10,8 @@
 
 This Plugin installs and controls couchpotato for UnRaid.
 All dependencies are installed as needed and everything is controlable from the webgui
+
+Filename: couchpotato-0.4a-i468-1bw.plg
 -->
 
 <FILE Name="/boot/packages/python-2.6.4-i486-1.txz" Run="upgradepkg --install-new">

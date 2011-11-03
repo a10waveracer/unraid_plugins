@@ -6,6 +6,8 @@
 
 This Plugin installs and controls Transmission for UnRaid.
 All dependencies are installed as needed and everything is controlable from the webgui
+
+Filename: Transmission-2.33-i468-1bw.plg
 -->
 
 <FILE Name="/boot/packages/curl-7.21.4-i486-1.txz" Run="upgradepkg --install-new">
