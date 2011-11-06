@@ -7,11 +7,12 @@
 2011-08-21 0.3-1bw - support for extra config dir, install to ramdisk, drop of sabnzbddependencies package
 2011-08-22 0.4-1bw - fixed a bug, when installed to ramdisk
 2011-08-23 0.4a-1bw - fixed a dependency bug
+2011-11-06 0.5-bw - added installer to webgui for update reasons. 
 
 This Plugin installs and controls couchpotato for UnRaid.
 All dependencies are installed as needed and everything is controlable from the webgui
 
-Filename: couchpotato-0.4a-i468-1bw.plg
+Filename: couchpotato-0.5-i468-bw.plg
 -->
 
 <FILE Name="/boot/packages/python-2.6.4-i486-1.txz" Run="upgradepkg --install-new">
@@ -120,9 +121,19 @@ write_config() {
 couchpotato_enable() {
   # if not already enabled, enable it
   if [ "$SERVICE" != "enable" ]; then
-    SERVICE=enable
-  
-    INSTALLDIR="$3"
+	SERVICE=enable
+	
+	couchpotato_change_settings $1 $2 $3 $4
+	
+	write_config
+  fi
+
+  # enabling also starts it
+  couchpotato_start
+}
+
+couchpotato_change_settings() {
+	INSTALLDIR="$3"
 	DATADIR="$4"
 	
 	if [ $DATADIR == "" ]; then
@@ -158,17 +169,12 @@ couchpotato_enable() {
 		echo "host = $(ifconfig  | grep 'inet addr:'| grep -v '127.0.0.1' | cut -d: -f2 | grep -v '^5' | awk '{ print $1}')" >> "$DATADIR/config.ini"
 		chown $RUNAS:users "$DATADIR/config.ini"
 	fi
-	
-    write_config
-  fi
-
-  # enabling also starts it
-  couchpotato_start
 }
 
 couchpotato_disable() {
   couchpotato_stop
   SERVICE=disable
+  couchpotato_change_settings $1 $2 $3 $4
   write_config
 }
 
@@ -177,7 +183,7 @@ couchpotato_install() {
 	
 	if [ ! -e "$INSTALLDIR" ]; then 
 		mkdir -p "$(dirname $INSTALLDIR)"
-    fi
+	fi
 	
 	cd /tmp
 	wget -q -O couchpotato.tar.gz --no-check-certificate "http://github.com/RuudBurger/CouchPotato/tarball/master"
@@ -185,6 +191,17 @@ couchpotato_install() {
 	mv $(dirname $INSTALLDIR)/RuudBurger* $INSTALLDIR
 	chown -R $RUNAS:users "$INSTALLDIR"
 	rm /tmp/couchpotato.tar.gz
+	
+	wget -q -O feed.atom --no-check-certificate "https://github.com/RuudBurger/CouchPotato/commits/master.atom"
+	ID=$(cat feed.atom | sed -n 's|<id>tag:github.com,2008:Grit::Commit/\(.*\)</id>|\1|p' | sed '1q;d' | cut -c 5-11)
+	if [ ! -e $DATADIR/cache/updates ]; then
+		mkdir -p "$DATADIR/cache/updates"
+		chown -R $RUNAS:users "$DATADIR/cache"
+	fi
+	echo "RuudBurger-CouchPotato-$ID.tar.gz" > $DATADIR/cache/updates/history.txt
+	chown $RUNAS:users "$DATADIR/cache/updates/history.txt"
+	
+	rm /tmp/feed.atom
 }
 
 # read our configuration
@@ -204,7 +221,7 @@ case "$1" in
   couchpotato_enable $2 $3 $4 $5
   ;;
 'disable')
-  couchpotato_disable
+  couchpotato_disable $2 $3 $4 $5
   ;;
 'install')
   couchpotato_install
@@ -222,7 +239,7 @@ esac
 <![CDATA[
 Menu="NetworkServices"
 Icon="couchpotato.png"
-Version="0.4-1bw"
+Version="0.5-bw"
 Author="Benjamin Waller"
 Type="php"
 Title="CouchPotato"
@@ -300,6 +317,19 @@ else
      <hr>
      <p class=ContentTitle><a href="http://<?=$var['NAME'];?>:<?=$couch_port;?>" target="_blank">CouchPotato</a> is running</p>
 <? endif; ?>
+<? if ($couchpotato_running=="no"): ?>
+	 <hr>
+	 <form name="coucpotato_settings" method="POST" action="/update.htm" target="progressFrame">
+	      <input type="hidden" name="cmd" value="/etc/rc.d/rc.couchpotato install">
+	      <p class=ContentTitle>Reinstall Couchpotato (use as an updater)</p>
+		  <table style="align:center;">
+	         <tr>
+	         <td><input type="submit" name="runCmd" value="Install"><button type="button" onClick="done();">Done</button></td>
+	         </tr>
+	      </table>
+	   </form>
+<? endif; ?>
+
 
 <script type="text/javascript">
 function checkINSTALLDIR(form)
