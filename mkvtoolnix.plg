@@ -1,0 +1,379 @@
+<?xml version='1.0' standalone='yes'?>
+<PLUGIN>
+
+<!--
+2011-08-19 0.1-1bw - first release
+
+-->
+
+<!-- Libraries -->
+
+<FILE Name="/boot/packages/atk-1.32.0-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/atk-1.32.0-i486-1.txz</URL>
+<MD5>15c67b3257f1356380bc6e1e3ac10117</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/boost-1.45.0-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/boost-1.45.0-i486-1.txz</URL>
+<MD5>05da48e6a1e353fd1665019a90a89618</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/bzip2-1.0.6-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/a/bzip2-1.0.6-i486-1.txz</URL>
+<MD5>68d1359ea350dd2d0b501f9c6e11c8a6</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/cairo-1.10.2-i486-2.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/cairo-1.10.2-i486-2.txz</URL>
+<MD5>fab27f60b9015766c5e54d02ee14d067</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/curl-7.21.4-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/n/curl-7.21.4-i486-1.txz</URL>
+<MD5>e32449e0588ef54df8524827028972e8</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/cxxlibs-6.0.14-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/a/cxxlibs-6.0.14-i486-1.txz</URL>
+<MD5>e5285a6b79f61a736d0899b0c6433374</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/flac-1.2.1-i486-3.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/ap/flac-1.2.1-i486-3.txz</URL>
+<MD5>d6fd5c2f130feb249ed3530ad432eaa3</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/fontconfig-2.8.0-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/fontconfig-2.8.0-i486-1.txz</URL>
+<MD5>50e2e06ad58d40f54ff0df0261922404</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/freetype-2.4.4-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/freetype-2.4.4-i486-1.txz</URL>
+<MD5>a8a0f44e102a552d348b91a5f7159cb1</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/gdk-pixbuf2-2.23.3-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/gdk-pixbuf2-2.23.3-i486-1.txz</URL>
+<MD5>36be065680a82207d1207808bdf8780e</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/glib2-2.28.6-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/glib2-2.28.6-i486-1.txz</URL>
+<MD5>b56543c4715de6eb78b2d6546d44f080</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/gtk+2-2.24.4-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/gtk+2-2.24.4-i486-1.txz</URL>
+<MD5>982de267888bb426b9d8242ef25929ec</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libICE-1.0.7-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libICE-1.0.7-i486-1.txz</URL>
+<MD5>d1dffa4aec5b657bbc903aeec3ef99a1</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libSM-1.2.0-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libSM-1.2.0-i486-1.txz</URL>
+<MD5>141e2a8c04b60ce9c5df4bd214824b84</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libX11-1.4.3-i486-2.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libX11-1.4.3-i486-2.txz</URL>
+<MD5>bebfff53ed756c70a871fab39fb1ac66</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXau-1.0.6-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXau-1.0.6-i486-1.txz</URL>
+<MD5>f3452ec06b553c1cdd45a9effde8cf60</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXcomposite-0.4.3-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXcomposite-0.4.3-i486-1.txz</URL>
+<MD5>bf990e9f3859808d1c8341201c0e51a6</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXcursor-1.1.11-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXcursor-1.1.11-i486-1.txz</URL>
+<MD5>c90d6dfc0daa9dd21db21ef05519aa5b</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXdamage-1.1.3-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXdamage-1.1.3-i486-1.txz</URL>
+<MD5>c0dd919128765f473768ba49912f3903</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXdmcp-1.1.0-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXdmcp-1.1.0-i486-1.txz</URL>
+<MD5>22ea786b77da92c807bc5b7afd14376a</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXext-1.2.0-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXext-1.2.0-i486-1.txz</URL>
+<MD5>1bd8709154eae161c7f597b1a2dcaeb4</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXfixes-5.0-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXfixes-5.0-i486-1.txz</URL>
+<MD5>b38c5ea2bd380da5c29dd78e37b0b319</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXi-1.4.2-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXi-1.4.2-i486-1.txz</URL>
+<MD5>25c14c585bbe76cbe82a2197ae2efd5c</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXinerama-1.1.1-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXinerama-1.1.1-i486-1.txz</URL>
+<MD5>8115ee36399745aa0d22215f6fba84a0</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXrandr-1.3.1-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXrandr-1.3.1-i486-1.txz</URL>
+<MD5>d2a2208504621080dea46c2b3d90daa4</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXrender-0.9.6-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXrender-0.9.6-i486-1.txz</URL>
+<MD5>503bb3cb323b4b09e2dfc5626c5465bc</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libXxf86vm-1.1.1-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libXxf86vm-1.1.1-i486-1.txz</URL>
+<MD5>41f114be237a6c3d088b93187d92cb10</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libidn-1.19-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/libidn-1.19-i486-1.txz</URL>
+<MD5>d412b0bd8f1f0731ec3e39702bf3a78c</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libjpeg-v8a-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/libjpeg-v8a-i486-1.txz</URL>
+<MD5>eded23e2b33edb951314301cfcf16bbb</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libmagic-4.17_4-i486-1as.tgz" Run="upgradepkg --install-new">
+<URL>http://repository.slacky.eu/slackware-11.0/libraries/libmagic/4.17.4/libmagic-4.17_4-i486-1as.tgz</URL>
+<MD5>f76417665f89f1c2a94aefd4da3654b5</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libmspack-0.2alpha-i486-1sl.txz" Run="upgradepkg --install-new">
+<URL>http://repository.slacky.eu/slackware-13.37/libraries/libmspack/0.2alpha/libmspack-0.2alpha-i486-1sl.txz</URL>
+<MD5>ab67db3ab2e34c7c27e0c3e10eb5184f</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libogg-1.2.2-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/libogg-1.2.2-i486-1.txz</URL>
+<MD5>d97b30ad9834cfb636f89ee8b43c69b7</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libpng-1.4.5-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/libpng-1.4.5-i486-1.txz</URL>
+<MD5>a15a84b582a80b6d95188493f158b158</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libtiff-3.9.4-i486-2.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/libtiff-3.9.4-i486-2.txz</URL>
+<MD5>c72b2d22fb7c5593150cb384424df247</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libvorbis-1.3.2-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/libvorbis-1.3.2-i486-1.txz</URL>
+<MD5>9afc0281a1ddd6bdca8fd239f098f969</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/libxcb-1.7-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/libxcb-1.7-i486-1.txz</URL>
+<MD5>66e7811e8143ea742a382e20fe2ceb0b</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/lzo-2.06-i486-1gds.txz" Run="upgradepkg --install-new">
+<URL>http://slackpack.ludost.net/packages/slackware-13.37/lzo-2.06-i486-1gds.txz</URL>
+<MD5>e4d22c53156e9bb93d66e05b3af1089e</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/pango-1.28.4-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/pango-1.28.4-i486-1.txz</URL>
+<MD5>c805b737ffaaeda6d02fb2e3a0bf0d1e</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/pixman-0.20.2-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/x/pixman-0.20.2-i486-1.txz</URL>
+<MD5>1b5e8c66478a58b3398f9dd015f28ecf</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/wxwidgets-2.8.12-i486-1sl.txz" Run="upgradepkg --install-new">
+<URL>http://repository.slacky.eu/slackware-13.37/development/wxwidgets/2.8.12/wxwidgets-2.8.12-i486-1sl.txz</URL>
+<MD5>a0f00a55500cf435eace409608589c16</MD5>
+</FILE>
+
+<FILE Name="/boot/packages/zlib-1.2.5-i486-4.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-13.37/slackware/l/zlib-1.2.5-i486-4.txz</URL>
+<MD5>eabaa7087a32dfd9f6d2662163779d07</MD5>
+</FILE>
+
+<!-- mkvtoolnix binaries -->
+<FILE Name="/boot/packages/mkvtoolnix-5.0.1-i486-1sl.txz" Run="upgradepkg --install-new">
+<URL>http://repository.slacky.eu/slackware-13.37/multimedia/mkvtoolnix/5.0.1/mkvtoolnix-5.0.1-i486-1sl.txz</URL>
+<MD5>aef72d5daeda46a622447d875df5f70c</MD5>
+</FILE>
+
+<!-- additional files -->
+<!--
+<FILE Name="/boot/config/plugins/mkvtoolnix/mkvtoolnix.png">
+<URL>http://unraid.benjaminwaller.de/mkvtoolnix/mkvtoolnix.png</URL>
+</FILE>
+-->
+<!-- clean up previous install -->
+<FILE Name="/tmp/mkvtoolnix-cleanup" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+rm -f -R /usr/local/emhttp/plugins/mkvtoolnix
+
+rm /tmp/mkvtoolnix-cleanup
+]]>
+</INLINE>
+</FILE>
+
+<!--
+<FILE Name="/usr/local/emhttp/plugins/mkvtoolnix/mkvtoolnix.page">
+<INLINE>
+<![CDATA[
+Menu="FileUtilities"
+Icon="mkvtoolnix.png"
+Version="0.1-bw"
+Author="Benjamin Waller"
+Type="php"
+Title="MKVtoolnix"
+]]>
+</INLINE>
+</FILE>
+-->
+
+<!--
+<FILE Name="/usr/local/emhttp/plugins/mkvtoolnix/mkvtoolnix.png">
+<LOCAL>/boot/config/plugins/mkvtoolnix/mkvtoolnix.png</LOCAL>
+</FILE>
+-->
+
+<!--
+<FILE Name="/usr/local/emhttp/plugins/webGui/FileUtilities.page">
+<INLINE>
+<![CDATA[
+Author="Benjamin Waller"
+Version="1.0.0"
+Title="File Utilities"
+Menu="Utils"
+Type="menu"
+]]>
+</INLINE>
+</FILE>
+-->
+
+<!--
+<FILE Name="/usr/local/emhttp/plugins/mkvtoolnix/mkvtoolnix.php">
+<INLINE>
+<![CDATA[
+<?PHP
+$mkvtoolnix_cfg = parse_ini_file( "/boot/config/plugins/mkvtoolnix/mkvtoolnix.cfg");
+?>
+   <form name="mkvtoolnix_settings" method="POST" action="/update.htm" target="progressFrame">
+      <input type="hidden" name="cmd" value="/etc/rc.d/rc.mkvtoolnix">
+      <table class="settings">
+         <tr>
+         <td>Enable sabnzbd:</td>
+         <td><select name="arg1" size="1" onChange="checkINSTALLDIR(this.form);">
+            <?=mk_option($sabnzbd_cfg['SERVICE'], "disable", "No");?>
+            <?=mk_option($sabnzbd_cfg['SERVICE'], "enable", "Yes");?>
+            </select></td>
+         </tr>
+         <tr>
+         <td>Install directory:</td>
+         <td><input type="text" name="arg4" maxlength="60" value="<?=$sabnzbd_cfg['INSTALLDIR'];?>"></td>
+         </tr>
+		 <tr>
+         <td>Data directory:</td>
+         <td><input type="checkbox" name="use_data" <?=($sabnzbd_cfg['DATADIR']!=$sabnzbd_cfg['INSTALLDIR'])?"checked=\"checked\"":"";?>  onChange="checkDATADIR(this.form);"> <input type="text" name="arg5" maxlength="60" value="<?=$sabnzbd_cfg['DATADIR'];?>"></td>
+         </tr>
+		 <tr>
+         <td>Port:</td>
+         <td><input type="text" name="arg3" maxlength="40" value="<?=$sabnzbd_cfg['PORT'];?>"></td>
+         </tr>
+		 <tr>
+         <td>Run as user:</td>
+         <td><select name="runas" size="1"  onChange="checkUSER(this.form);">
+            <?=mk_option($sabnzbd_cfg['RUNAS'], "nobody", "nobody");?>
+            <?=mk_option($sabnzbd_cfg['RUNAS'], "root", "root");?>
+			<option value='other'<?=($sabnzbd_cfg['RUNAS'] != "root" && $sabnzbd_cfg['RUNAS'] != "nobody")?" selected=yes":"" ;?>>other</option>
+            </select><input type="text" name="arg2" maxlength="40" value="<?=$sabnzbd_cfg['RUNAS'];?>"></td>
+         </tr>
+         <tr>
+         <td></td>
+         <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
+         </tr>
+      </table>
+   </form>
+
+<script type="text/javascript">
+function checkINSTALLDIR(form)
+{
+   if ("<?=$sabnzbd_running;?>" == "yes") {
+      form.arg2.readOnly = true;
+      form.arg3.readOnly = true;
+      form.arg4.readOnly = true;
+      form.arg5.readOnly = true;
+	  form.runas.disabled = true;
+	  form.use_data.disabled = true;
+   }
+   else {
+      form.arg2.readOnly = (form.arg1.value == "enable");
+      form.arg3.readOnly = (form.arg1.value == "enable");
+      form.arg4.readOnly = (form.arg1.value == "enable");
+	  form.arg5.readOnly = (form.arg1.value == "enable");
+      form.runas.disabled = (form.arg1.value == "enable");
+	  form.use_data.disabled = (form.arg1.value == "enable");
+   }
+}
+
+function checkUSER(form)
+{
+	if (form.runas.selectedIndex < 2 ) {
+		form.arg2.value = form.runas.options[form.runas.selectedIndex].value;
+		form.arg2.type = "hidden";
+	} else {
+		form.arg2.value = "<?=$sabnzbd_cfg['RUNAS'];?>";
+		form.arg2.type = "text";
+	}
+}
+
+function checkDATADIR(form)
+{
+	if (form.use_data.checked == false ) {
+		form.arg5.value = form.arg4.value;;
+		form.arg5.type = "hidden";
+	} else {
+		form.arg5.value = "<?=$sabnzbd_cfg['DATADIR'];?>";
+		form.arg5.type = "text";
+	}
+}
+
+checkINSTALLDIR(document.sabnzbd_settings);
+checkUSER(document.sabnzbd_settings);
+checkDATADIR(document.sabnzbd_settings);
+</script>
+
+]]>
+</INLINE>
+</FILE>
+-->
+
+<FILE Name="/var/log/plugins/mkvtoolnix">
+<INLINE>
+<![CDATA[
+
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>
