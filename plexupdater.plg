@@ -1,0 +1,285 @@
+<?xml version='1.0' standalone='yes'?>
+<PLUGIN>
+
+<!--
+This UnRaid plugin will install and update the plex media server addon.
+-->
+
+<FILE Name="/boot/config/plugins/plexupdater/plexupdater.png">
+<URL>--no-check-certificate https://raw.github.com/Benni-chan/unraid_plugins/master/plexupdater.png</URL>
+</FILE>
+
+<FILE Name="/boot/config/plugins/plexupdater/simple_html_dom.php">
+<URL>--no-check-certificate http://sourceforge.net/p/simplehtmldom/code/205/tree/trunk/simple_html_dom.php?format=raw</URL>
+</FILE>
+
+<!-- clean up previous install -->
+<FILE Name="/tmp/plexupdater-cleanup" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+[ -d /usr/local/emhttp/plugins/plexupdater ] && rm -f -R /usr/local/emhttp/plugins/plexupdater
+[ -f /etc/rc.d/rc.plexupdater ] && rm -f /etc/rc.d/rc.plexupdater
+rm /tmp/plexupdater-cleanup
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/plexupdater/settings.ini">
+<INLINE>
+<![CDATA[
+# Plexupdater configuration:
+PLEXPASS="false"
+USERNAME=""
+PASSWORD=""
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/etc/rc.d/rc.plexupdater" Mode="0770">
+<INLINE>
+<![CDATA[
+#!/bin/sh
+# write_config|update|install PMS.
+
+write_config()
+{
+	echo "# Plexupdater configuration:" > /boot/config/plugins/plexupdater/settings.ini
+	echo "PLEXPASS=\"$PLEXPASS\"" >> /boot/config/plugins/plexupdater/settings.ini
+	echo "USERNAME=\"$USERNAME\"" >> /boot/config/plugins/plexupdater/settings.ini
+	echo "PASSWORD=\"$PASSWORD\"" >> /boot/config/plugins/plexupdater/settings.ini
+}
+
+plexupdater_config()
+{
+	PLEXPASS="$1"
+	USERNAME="$2"
+	PASSWORD="$3"
+	write_config
+}
+
+plexupdater_update()
+{ set -x
+	
+	URL="$1"
+	NEWFILENAME="$2"
+	NEWVERSION="$3"
+	CURVERSION="$4"
+	
+	echo "Installing latest version of Plex Media Server..."
+
+	if [ -e "/etc/rc.d/rc.plexmediaserver" ]; then
+		/etc/rc.d/rc.plexmediaserver stop
+	fi
+	
+	rm -f /boot/extra/PlexMediaServer-*.txz
+	
+	cd /boot/extra
+	wget -q ${URL}
+	installpkg /boot/extra/${NEWFILENAME}
+	
+	if [[ "$CURVERSION" != "" ]]; then
+		/etc/rc.d/rc.plexmediaserver start
+	fi
+	
+	sleep 3
+	echo "... OK"
+	sleep 1
+}
+
+# read our configuration
+source /boot/config/plugins/plexupdater/settings.ini
+
+case "$1" in
+	'install')
+		plexupdater_update $2 $3 $4
+	;;
+	'update')
+		plexupdater_update $2 $3 $4 $5
+	;;
+	'config')
+		plexupdater_config $2 $3 $4
+	;;
+	*)
+		echo "usage $0 install|update|config"
+esac
+
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/plexupdater/plexupdater.page">
+<INLINE>
+<![CDATA[
+Menu="NetworkServices"
+Icon="plexupdater.png"
+Version="0.1"
+Author="Benni-chan"
+Type="php"
+Title="PMS Updater"
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/plexupdater/plexupdater.png">
+<LOCAL>/boot/config/plugins/plexupdater/plexupdater.png</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/plexupdater/simple_html_dom.php">
+<LOCAL>/boot/config/plugins/plexupdater/simple_html_dom.php</LOCAL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/plexupdater/plexupdater.php">
+<INLINE>
+<![CDATA[
+<?PHP
+$plex_cfg = parse_ini_file( "/boot/config/plugins/plexupdater/settings.ini");
+$plex_installed = file_exists("/etc/rc.d/rc.plexmediaserver") ? "yes" : "no";
+$plex_version = substr(trim(shell_exec( "/etc/rc.d/rc.plexmediaserver version" )),1);
+
+include('simple_html_dom.php');
+
+if ( $plex_cfg['PLEXPASS'] == 'true' && $plex_cfg['USERNAME'] != "" && $plex_cfg['PASSWORD'] != "" )
+{
+	$url = 'http://'.$plex_cfg['USERNAME'].':'.$plex_cfg['PASSWORD'].'@plexapp.com/plexpass/plex-media-server.php';
+	$r = get_headers($url);
+	if ($r[0] != "HTTP/1.1 200 OK") //if username/password are not correct
+		$url = 'http://plexapp.com/getplex/';
+}
+else
+{
+	$url = 'http://plexapp.com/getplex/';
+}
+
+$html = file_get_html($url);
+
+foreach($html->find('a') as $e) 
+{
+	if (strstr($e->href, "unRAID") != FALSE)
+		{
+			//echo $e->href . '<br>';
+			$plex_dl = $e->href;
+		}
+}
+
+$s = explode('/',$plex_dl);
+$new_file_name = $s[5];
+
+$s = explode('-',$new_file_name);
+$new_version = trim($s[1].'-'.$s[2]);
+//$new_version = substr($new_file_name,16,19);
+
+//echo "|".$plex_version."|<br>|".$new_version."|";
+
+?>
+
+<div style="width: 49%; float:left">
+	<div id="title">
+		<span class="left">Status:
+			<?if ($plex_installed=="yes"):?>
+				<span class="green"><b>INSTALLED</b></span></a><span style="font-size:12px;"> with version: <b><?=$plex_version?></b></span>
+			<?else:?>
+				<span class="red"><b>NOT INSTALLED</b></span>
+			<?endif;?>
+		</span>
+	</div>
+	<?if ($plex_installed=="yes"):?>
+		<?if ($plex_version == $new_version):?>
+			<div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">
+				<form name="sabnzbd_install" method="POST" action="/update.htm" target="progressFrame">
+					<input type="hidden" name="cmd" value="/etc/rc.d/rc.plexupdater update">
+					<input type="hidden" name="arg1" value="<?=$plex_dl?>">
+					<input type="hidden" name="arg2" value="<?=$new_file_name?>">
+					<input type="hidden" name="arg3" value="<?=$new_version?>">
+					<input type="hidden" name="arg4" value="<?=$plex_version?>">
+					<input type="submit" name="runCmd" value="Reinstall">
+				</form>
+			</div>
+		<?else:?>
+			<div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">
+				New Version: <?=$new_version?><br>
+				<form name="sabnzbd_install" method="POST" action="/update.htm" target="progressFrame">
+					<input type="hidden" name="cmd" value="/etc/rc.d/rc.plexupdater update">
+					<input type="hidden" name="arg1" value="<?=$plex_dl?>">
+					<input type="hidden" name="arg2" value="<?=$new_file_name?>">
+					<input type="hidden" name="arg3" value="<?=$new_version?>">
+					<input type="hidden" name="arg4" value="<?=$plex_version?>">
+					<input type="submit" name="runCmd" value="Update">
+				</form>
+			</div>
+		<?endif;?>
+	<?else:?>
+		<div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">
+			New Version: <?=$new_version?><br>
+			<form name="sabnzbd_install" method="POST" action="/update.htm" target="progressFrame">
+				<input type="hidden" name="cmd" value="/etc/rc.d/rc.plexupdater install">
+				<input type="hidden" name="arg1" value="<?=$plex_dl?>">
+				<input type="hidden" name="arg2" value="<?=$new_file_name?>">
+				<input type="hidden" name="arg3" value="<?=$new_version?>">
+				<input type="submit" name="runCmd" value="Install">
+			</form>
+		</div>
+	<?endif;?>
+</div>
+
+<div style="width: 49%; float:right">
+	<div id="title">
+		<span class="left">Configuration:</span>
+	</div>
+	<form name="plex_settings" method="POST" action="/update.htm" target="progressFrame">
+		<input type="hidden" name="cmd" value="/etc/rc.d/rc.plexupdater config">
+	      <table class="settings">
+	         <tr>
+	         <td>Use Plexpass Pre-Releases:</td>
+	         <td><select name="arg1" size="1" onChange="checkPLEX_PLEXPASS(this.form);">
+	            <?=mk_option($plex_cfg['PLEXPASS'], "false", "No");?>
+	            <?=mk_option($plex_cfg['PLEXPASS'], "true", "Yes");?>
+	            </select></td>
+	         </tr>
+	         <tr id="username_row">
+	         <td>Username:</td>
+	         <td><input type="text" name="arg2" maxlength="60" value="<?=$plex_cfg['USERNAME'];?>"></td>
+	         </tr>
+	         <tr id="password_row">
+	         <td>Password:</td>
+	         <td><input type="text" name="arg3" maxlength="60" value="<?=$plex_cfg['PASSWORD'];?>"></td>
+	         </tr>
+		 </table>
+		 <div align="center">
+		 	<hr size="3" align="center" width="75%" color="grey" style="margin-top:20px;margin-bottom:18px" >
+		 	<input type="submit" name="runCmd" value="Apply" style="margin-bottom:35px">
+		 	<button type="button" style="margin-bottom:35px" onClick="done();">Done</button>
+		 </div>
+	</form>
+	<br />
+</div>
+
+<script type="text/javascript">
+function checkPLEX_PLEXPASS(form)
+{
+	if (form.arg1.selectedIndex < 1 )
+		{
+			document.getElementById("username_row").style.display = 'none';
+			document.getElementById("password_row").style.display = 'none';
+		}
+		else
+		{
+			document.getElementById("username_row").style.display = '';
+			document.getElementById("password_row").style.display = '';
+		}
+}
+checkPLEX_PLEXPASS(document.plex_settings);
+</script>
+
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/var/log/plugins/plexupdater">
+<INLINE>
+<![CDATA[
+
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>

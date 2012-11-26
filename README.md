@@ -10,12 +10,17 @@ This plugin will set dyndns services on your unraid system. Sadly it's not very 
 ###drive_mount
 This plugin will let you mount a disk, which is not part of your array. In the future, there will be more features like adding shares automaticaly after mounting.
 
+###plexupdater
+This plugin will download and install the latest version of the plex media server addon.
+
+
 ##Downloads:
 Right click and save link as;
 
 -  [mkvtoolnix.plg](https://raw.github.com/Benni-chan/unraid_plugins/master/mkvtoolnix.plg)
 -  [inadyn.plg](https://raw.github.com/Benni-chan/unraid_plugins/master/inadyn.plg)
 -  [drive_mount.plg](https://raw.github.com/Benni-chan/unraid_plugins/master/drive_mount.plg)
+-  [plexupdater.plg](https://raw.github.com/Benni-chan/unraid_plugins/master/plexupdater.plg)
 
 ##Other Plugins
 Several other plugins I created are now hosted here: [UNplugged plugins](https://github.com/Influencer/UNplugged)
