@@ -8,12 +8,12 @@ Filename: inadyn-0.98.1-noarch.1bw.plg
 -->
 
 <FILE Name="/boot/config/plugins/inadyn/inadyn-0.1.98.1-bin.tar.gz">
-<URL>http://unraid.benjaminwaller.de/inadyn/inadyn-0.1.98.1-bin.tar.gz</URL>
+<URL>--no-check-certificate https://github.com/Benni-chan/unraid_plugins/raw/master/inadyn-0.1.98.1-bin.tar.gz</URL>
 <MD5>c099e7b1f70611843891a32d2e91de59</MD5>
 </FILE>
 
 <FILE Name="/boot/config/plugins/inadyn/inadyn.png">
-<URL>http://unraid.benjaminwaller.de/inadyn/inadyn.png</URL>
+<URL>https://github.com/Benni-chan/unraid_plugins/raw/master/inadyn.png</URL>
 </FILE>
 
 <!-- clean up previous install -->
