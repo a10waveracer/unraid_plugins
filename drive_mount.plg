@@ -7,11 +7,10 @@
 This UnRaid plugin will mount any drive, which is not part of the array
 at a configureable mount point
 
-Filename: drive_mount-0.2-noarch-1bw.plg
 -->
 
 <FILE Name="/boot/config/plugins/drive_mount/drive_mount.png">
-<URL>http://unraid.benjaminwaller.de/drive_mount/drive_mount.png</URL>
+<URL>--no-check-certificate https://github.com/Benni-chan/unraid_plugins/raw/master/drive_mount.png</URL>
 </FILE>
 
 <FILE Name="/boot/config/plugins/drive_mount/drive_mount.cfg">
