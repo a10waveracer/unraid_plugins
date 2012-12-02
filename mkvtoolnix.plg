@@ -237,7 +237,7 @@
 
 <!-- additional files -->
 <FILE Name="/boot/config/plugins/mkvtoolnix/mkvtoolnix.png">
-<URL>--no-check-certificate https://raw.github.com/Benni-chan/unraid_plugins/master/mkvtoolnix.png</URL>
+<URL>--no-check-certificate https://raw.github.com/Benni-chan/unraid_plugins/master/support_files/mkvtoolnix.png</URL>
 </FILE>
 
 <!-- clean up previous install -->

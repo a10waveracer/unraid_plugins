@@ -6,7 +6,7 @@ This UnRaid plugin will install and update the plex media server addon.
 -->
 
 <FILE Name="/boot/config/plugins/plexupdater/plexupdater.png">
-<URL>--no-check-certificate https://raw.github.com/Benni-chan/unraid_plugins/master/plexupdater.png</URL>
+<URL>--no-check-certificate https://raw.github.com/Benni-chan/unraid_plugins/master/support_files/plexupdater.png</URL>
 </FILE>
 
 <FILE Name="/boot/config/plugins/plexupdater/simple_html_dom.php">

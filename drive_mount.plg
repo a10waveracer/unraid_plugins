@@ -10,7 +10,7 @@ at a configureable mount point
 -->
 
 <FILE Name="/boot/config/plugins/drive_mount/drive_mount.png">
-<URL>--no-check-certificate https://github.com/Benni-chan/unraid_plugins/raw/master/drive_mount.png</URL>
+<URL>--no-check-certificate https://github.com/Benni-chan/unraid_plugins/raw/master/support_files/drive_mount.png</URL>
 </FILE>
 
 <FILE Name="/boot/config/plugins/drive_mount/drive_mount.cfg">
