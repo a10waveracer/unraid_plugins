@@ -14,6 +14,8 @@ This plugin will let you mount a disk, which is not part of your array. In the f
 This plugin will download and install the latest version of the plex media server addon.
 
 
+[Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4E5CMSHK5PRZY)
+
 ##Downloads:
 Right click and save link as;
 
