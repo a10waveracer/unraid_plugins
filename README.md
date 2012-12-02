@@ -13,9 +13,10 @@ This plugin will let you mount a disk, which is not part of your array. In the f
 ###plexupdater
 This plugin will download and install the latest version of the plex media server addon.
 
-
-[Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4E5CMSHK5PRZY)
-[Flattr](https://flattr.com/submit/auto?url=https%3A%2F%2Fgithub.com/Benni-chan/unraid_plugins%2F&amp;user_id=Benni-chan)
+##Donate
+If you want to buy me an coffee or something to help out long coding sessions:
+-  [Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4E5CMSHK5PRZY)
+-  [Flattr](https://flattr.com/submit/auto?url=https%3A%2F%2Fgithub.com/Benni-chan/unraid_plugins%2F&amp;user_id=Benni-chan)
 
 ##Downloads:
 Right click and save link as;
