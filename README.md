@@ -22,6 +22,11 @@ Right click and save link as;
 -  [drive_mount.plg](https://raw.github.com/Benni-chan/unraid_plugins/master/drive_mount.plg)
 -  [plexupdater.plg](https://raw.github.com/Benni-chan/unraid_plugins/master/plexupdater.plg)
 
+##Simple Features
+I recommend to install the Simple Features plugin, since my plugin will make use of some features included in Simple Features.
+Plugins, which need Simple Features to work properly, will have a "_sf" in their name.
+You can find the most recent version of Simple Features on http://lime-technology.com/forum/index.php?topic=12698.0
+
 ##Other Plugins
 Several other plugins I created are now hosted here: [UNplugged plugins](https://github.com/Influencer/UNplugged)
 They are currently maintained by Influencer (but I still add a feature here and there or fix a bug or two ;) )
