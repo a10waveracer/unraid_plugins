@@ -9,10 +9,6 @@ This UnRaid plugin will install and update the plex media server addon.
 <URL>--no-check-certificate https://raw.github.com/Benni-chan/unraid_plugins/master/support_files/plexupdater.png</URL>
 </FILE>
 
-<FILE Name="/boot/config/plugins/plexupdater/simple_html_dom.php">
-<URL>--no-check-certificate http://sourceforge.net/p/simplehtmldom/code/205/tree/trunk/simple_html_dom.php?format=raw</URL>
-</FILE>
-
 <!-- clean up previous install -->
 <FILE Name="/tmp/plexupdater-cleanup" Run="/bin/bash">
 <INLINE>
@@ -31,6 +27,14 @@ rm /tmp/plexupdater-cleanup
 PLEXPASS="false"
 USERNAME=""
 PASSWORD=""
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/plexupdater/plgver.txt">
+<INLINE>
+<![CDATA[
+1.0
 ]]>
 </INLINE>
 </FILE>
@@ -57,16 +61,54 @@ plexupdater_config()
 	write_config
 }
 
-plexupdater_update()
-{ set -x
+plexupdater_check_version()
+{
+	#get stable version
+	STABLEURL=`curl -s "http://www.plexapp.com/getplex/" | grep -o '<a id=['"'"'"][^"'"'"']*['"'"'"] href=['"'"'"][^"'"'"']*unRAID.txz['"'"'"]' | sed -e 's/^<a id=['"'"'"][^"'"'"']*['"'"'"] href=["'"'"']//' -e 's/["'"'"']$//'`
 	
-	URL="$1"
-	NEWFILENAME="$2"
-	NEWVERSION="$3"
-	CURVERSION="$4"
+	STABLEVERSION=`echo $STABLEURL | sed -e 's/^[0-9A-Za-z./:-]*PlexMediaServer-//' -e 's/-unRAID.txz//'`
+	STABLESHORTVERSION=`echo $STABLEVERSION | sed -e 's/-[0-9A-Za-z]*//'`
 	
-	echo "Installing latest version of Plex Media Server..."
+	URL=$STABLEURL
+	NEWVERSION=$STABLEVERSION
+	NEWSHORTVERSION=$STABLESHORTVERSION
+	
+	#get plexpass version, if plexpass is activated
+	if [[ "$PLEXPASS" == "true" && "$USERNAME" != "" && "$PASSWORD" != "" ]]; then
+		#preview version
+		PLEXPASSURL=`curl -s --user "$USERNAME:$PASSWORD" "http://plexapp.com/plexpass/plex-media-server.php" | grep -o '<a id=['"'"'"][^"'"'"']*['"'"'"] href=['"'"'"][^"'"'"']*unRAID.txz['"'"'"]' | sed -e 's/^<a id=['"'"'"][^"'"'"']*['"'"'"] href=["'"'"']//' -e 's/["'"'"']$//'`
+		
+		PLEXPASSVERSION=`echo $PLEXPASSURL | sed -e 's/^[0-9A-Za-z./:-]*PlexMediaServer-//' -e 's/-unRAID.txz//'`
+		PLEXPASSSHORTVERSION=`echo $PLEXPASSVERSION | sed -e 's/-[0-9A-Za-z]*//'`
+		
+		if [[ $STABLESHORTVERSION < $PLEXPASSSHORTVERSION ]]; then
+			URL=$PLEXPASSURL
+			NEWVERSION=$PLEXPASSVERSION
+			NEWSHORTVERSION=$PLEXPASSSHORTVERSION
+		fi
+	fi
+	
+	#get currently installed version
+	CURRENTVERSION=`/etc/rc.d/rc.plexmediaserver version | sed -e 's/^v//'`
+	CURRENTSHORTVERSION=`echo $CURRENTVERSION | sed -e 's/-[0-9A-Za-z]*//'`
 
+}
+
+plexupdater_version()
+{
+	plexupdater_check_version
+	
+	echo $NEWVERSION
+	
+}
+
+plexupdater_update()
+{
+	plexupdater_check_version
+	
+	#get filename from url
+	NEWFILENAME=`echo $STABLEURL | sed -e 's/^[0-9A-Za-z./:-]*\///'`
+	
 	if [ -e "/etc/rc.d/rc.plexmediaserver" ]; then
 		/etc/rc.d/rc.plexmediaserver stop
 	fi
@@ -74,10 +116,12 @@ plexupdater_update()
 	rm -f /boot/extra/PlexMediaServer-*.txz
 	
 	cd /boot/extra
+	echo "Downloading Plex Media Server $NEWVERSION..."
 	wget -q ${URL}
+	echo "Installing Plex Media Server $NEWVERSION..."
 	installpkg /boot/extra/${NEWFILENAME}
 	
-	if [[ "$CURVERSION" != "" ]]; then
+	if [[ "$CURRENTVERSION" != "" ]]; then
 		/etc/rc.d/rc.plexmediaserver start
 	fi
 	
@@ -86,21 +130,53 @@ plexupdater_update()
 	sleep 1
 }
 
+plexupdater_updateplg()
+{
+	cd /boot/config/plugins
+	[ -f plexupdater.plg.old ] && rm -f plexupdater.plg.old
+	if [ -f plexupdater.plg ]; then
+		mv plexupdater.plg plexupdater.plg.old
+	fi
+	echo "Updating plugin"
+	wget -q --no-check-certificate https://raw.github.com/Benni-chan/unraid_plugins/master/plexupdater.plg
+	/usr/local/sbin/installplg /boot/config/plugins/plexupdater.plg
+}
+plexupdater_downgradeplg()
+{
+	cd /boot/config/plugins
+	if [ -f plexupdater.plg.old ]; then
+		rm -f /plexupdater.plg
+		mv plexupdater.plg.old plexupdater.plg
+		echo "downgrading plugin"
+		/usr/local/sbin/installplg /boot/config/plugins/plexupdater.plg
+	fi
+}
+
+
 # read our configuration
 source /boot/config/plugins/plexupdater/settings.ini
 
 case "$1" in
 	'install')
-		plexupdater_update $2 $3 $4
+		plexupdater_update
 	;;
 	'update')
-		plexupdater_update $2 $3 $4 $5
+		plexupdater_update
+	;;
+	'version')
+		plexupdater_version
 	;;
 	'config')
 		plexupdater_config $2 $3 $4
 	;;
+	'updateplg')
+		plexupdater_updateplg
+	;;
+	'downgradeplg')
+		plexupdater_downgradeplg
+	;;
 	*)
-		echo "usage $0 install|update|config"
+		echo "usage $0 install|update|version|updateplg|downgradeplg"
 esac
 
 ]]>
@@ -112,7 +188,7 @@ esac
 <![CDATA[
 Menu="NetworkServices"
 Icon="plexupdater.png"
-Version="0.1"
+Version="1.0"
 Author="Benni-chan"
 Type="php"
 Title="PMS Updater"
@@ -124,10 +200,6 @@ Title="PMS Updater"
 <LOCAL>/boot/config/plugins/plexupdater/plexupdater.png</LOCAL>
 </FILE>
 
-<FILE Name="/usr/local/emhttp/plugins/plexupdater/simple_html_dom.php">
-<LOCAL>/boot/config/plugins/plexupdater/simple_html_dom.php</LOCAL>
-</FILE>
-
 <FILE Name="/usr/local/emhttp/plugins/plexupdater/plexupdater.php">
 <INLINE>
 <![CDATA[
@@ -135,41 +207,9 @@ Title="PMS Updater"
 $plex_cfg = parse_ini_file( "/boot/config/plugins/plexupdater/settings.ini");
 $plex_installed = file_exists("/etc/rc.d/rc.plexmediaserver") ? "yes" : "no";
 $plex_version = substr(trim(shell_exec( "/etc/rc.d/rc.plexmediaserver version" )),1);
-
-include('simple_html_dom.php');
-
-if ( $plex_cfg['PLEXPASS'] == 'true' && $plex_cfg['USERNAME'] != "" && $plex_cfg['PASSWORD'] != "" )
-{
-	$url = 'http://'.$plex_cfg['USERNAME'].':'.$plex_cfg['PASSWORD'].'@plexapp.com/plexpass/plex-media-server.php';
-	$r = get_headers($url);
-	if ($r[0] != "HTTP/1.1 200 OK") //if username/password are not correct
-		$url = 'http://plexapp.com/getplex/';
-}
-else
-{
-	$url = 'http://plexapp.com/getplex/';
-}
-
-$html = file_get_html($url);
-
-foreach($html->find('a') as $e) 
-{
-	if (strstr($e->href, "unRAID") != FALSE)
-		{
-			//echo $e->href . '<br>';
-			$plex_dl = $e->href;
-		}
-}
-
-$s = explode('/',$plex_dl);
-$new_file_name = $s[5];
-
-$s = explode('-',$new_file_name);
-$new_version = trim($s[1].'-'.$s[2]);
-//$new_version = substr($new_file_name,16,19);
-
-//echo "|".$plex_version."|<br>|".$new_version."|";
-
+$plex_newversion = trim(shell_exec( "/usr/local/sbin/plexupdater version" ));
+$plex_rollback = file_exists( "boot/config/plugins/plexupdater.plg.old" ) ? "yes" : "no";
+$plex_plgver = shell_exec ( "cat /boot/config/plugins/plexupdater/plgver.txt" );
 ?>
 
 <div style="width: 49%; float:left">
@@ -183,49 +223,64 @@ $new_version = trim($s[1].'-'.$s[2]);
 		</span>
 	</div>
 	<?if ($plex_installed=="yes"):?>
-		<?if ($plex_version == $new_version):?>
+		<?if ($plex_version == $plex_newversion):?>
 			<div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">
-				<form name="sabnzbd_install" method="POST" action="/update.htm" target="progressFrame">
+				<form name="plexupdater_install" method="POST" action="/update.htm" target="progressFrame">
 					<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater update">
-					<input type="hidden" name="arg1" value="<?=$plex_dl?>">
-					<input type="hidden" name="arg2" value="<?=$new_file_name?>">
-					<input type="hidden" name="arg3" value="<?=$new_version?>">
-					<input type="hidden" name="arg4" value="<?=$plex_version?>">
 					<input type="submit" name="runCmd" value="Reinstall">
 				</form>
 			</div>
 		<?else:?>
 			<div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">
-				New Version: <?=$new_version?><br>
-				<form name="sabnzbd_install" method="POST" action="/update.htm" target="progressFrame">
+				New Version: <?=$plex_newversion?><br>
+				<form name="plexupdater_install" method="POST" action="/update.htm" target="progressFrame">
 					<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater update">
-					<input type="hidden" name="arg1" value="<?=$plex_dl?>">
-					<input type="hidden" name="arg2" value="<?=$new_file_name?>">
-					<input type="hidden" name="arg3" value="<?=$new_version?>">
-					<input type="hidden" name="arg4" value="<?=$plex_version?>">
 					<input type="submit" name="runCmd" value="Update">
 				</form>
 			</div>
 		<?endif;?>
 	<?else:?>
 		<div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">
-			New Version: <?=$new_version?><br>
-			<form name="sabnzbd_install" method="POST" action="/update.htm" target="progressFrame">
+			New Version: <?=$plex_newversion?><br>
+			<form name="plexupdater_install" method="POST" action="/update.htm" target="progressFrame">
 				<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater install">
-				<input type="hidden" name="arg1" value="<?=$plex_dl?>">
-				<input type="hidden" name="arg2" value="<?=$new_file_name?>">
-				<input type="hidden" name="arg3" value="<?=$new_version?>">
 				<input type="submit" name="runCmd" value="Install">
 			</form>
 		</div>
 	<?endif;?>
+	
+	<? if ($plex_rollback=="yes"): ?>
+	<div style="position:relative;float:left;width:50%;text-align:right;margin-bottom:24px">
+			<form name="plexupdater_update1" method="POST" action="/update.htm" target="progressFrame">
+					<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater updateplg">
+					<input type="submit" name="runCmd" value="Update PLG">
+			</form>
+	</div>
+	<div style="position:relative;float:left;width:50%;text-align:left;margin-bottom:24px">
+		<form name="plexupdater_downgradedate" method="POST" action="/update.htm" target="progressFrame">
+					<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater downgradeplg">
+					<input type="submit" name="runCmd" value="Downgrade PLG">
+			</form>
+	</div>
+	<?else:?>
+	<div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">
+			<form name="plexupdater_update" method="POST" action="/update.htm" target="progressFrame">
+				<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater updateplg">			
+				<input type="submit" name="runCmd" value="Update PLG">
+			</form>
+		</div>
+	<?endif;?>
+	
+	<br/>
+	<p style="margin-left:10px;"><b>Plug-in Version: <?=$plex_plgver;?></b></p>
+	
 </div>
 
 <div style="width: 49%; float:right">
 	<div id="title">
 		<span class="left">Configuration:</span>
 	</div>
-	<form name="plex_settings" method="POST" action="/update.htm" target="progressFrame">
+	<form name="plexupdater_settings" method="POST" action="/update.htm" target="progressFrame">
 		<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater config">
 	      <table class="settings">
 	         <tr>
