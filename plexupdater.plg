@@ -18,7 +18,7 @@ This UnRaid plugin will install and update the plex media server addon.
 <INLINE>
 <![CDATA[
 [ -d /usr/local/emhttp/plugins/plexupdater ] && rm -f -R /usr/local/emhttp/plugins/plexupdater
-[ -f /etc/rc.d/rc.plexupdater ] && rm -f /etc/rc.d/rc.plexupdater
+[ -f /usr/local/sbin/plexupdater ] && rm -f /usr/local/sbin/plexupdater
 rm /tmp/plexupdater-cleanup
 ]]>
 </INLINE>
@@ -35,7 +35,7 @@ PASSWORD=""
 </INLINE>
 </FILE>
 
-<FILE Name="/etc/rc.d/rc.plexupdater" Mode="0770">
+<FILE Name="/usr/local/sbin/plexupdater" Mode="0770">
 <INLINE>
 <![CDATA[
 #!/bin/sh
@@ -186,7 +186,7 @@ $new_version = trim($s[1].'-'.$s[2]);
 		<?if ($plex_version == $new_version):?>
 			<div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">
 				<form name="sabnzbd_install" method="POST" action="/update.htm" target="progressFrame">
-					<input type="hidden" name="cmd" value="/etc/rc.d/rc.plexupdater update">
+					<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater update">
 					<input type="hidden" name="arg1" value="<?=$plex_dl?>">
 					<input type="hidden" name="arg2" value="<?=$new_file_name?>">
 					<input type="hidden" name="arg3" value="<?=$new_version?>">
@@ -198,7 +198,7 @@ $new_version = trim($s[1].'-'.$s[2]);
 			<div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">
 				New Version: <?=$new_version?><br>
 				<form name="sabnzbd_install" method="POST" action="/update.htm" target="progressFrame">
-					<input type="hidden" name="cmd" value="/etc/rc.d/rc.plexupdater update">
+					<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater update">
 					<input type="hidden" name="arg1" value="<?=$plex_dl?>">
 					<input type="hidden" name="arg2" value="<?=$new_file_name?>">
 					<input type="hidden" name="arg3" value="<?=$new_version?>">
@@ -211,7 +211,7 @@ $new_version = trim($s[1].'-'.$s[2]);
 		<div style="position:relative;float:left;width:100%;text-align:center;margin-bottom:24px">
 			New Version: <?=$new_version?><br>
 			<form name="sabnzbd_install" method="POST" action="/update.htm" target="progressFrame">
-				<input type="hidden" name="cmd" value="/etc/rc.d/rc.plexupdater install">
+				<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater install">
 				<input type="hidden" name="arg1" value="<?=$plex_dl?>">
 				<input type="hidden" name="arg2" value="<?=$new_file_name?>">
 				<input type="hidden" name="arg3" value="<?=$new_version?>">
@@ -226,7 +226,7 @@ $new_version = trim($s[1].'-'.$s[2]);
 		<span class="left">Configuration:</span>
 	</div>
 	<form name="plex_settings" method="POST" action="/update.htm" target="progressFrame">
-		<input type="hidden" name="cmd" value="/etc/rc.d/rc.plexupdater config">
+		<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater config">
 	      <table class="settings">
 	         <tr>
 	         <td>Use Plexpass Pre-Releases:</td>
