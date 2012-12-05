@@ -104,7 +104,7 @@ plexupdater_version()
 }
 
 plexupdater_update()
-{
+{ set -x
 	plexupdater_check_version
 	
 	#get filename from url
