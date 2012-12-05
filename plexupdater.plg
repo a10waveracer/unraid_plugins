@@ -35,7 +35,7 @@ PASSWORD=""
 <FILE Name="/boot/config/plugins/plexupdater/plgver.txt">
 <INLINE>
 <![CDATA[
-1.1
+1.2
 ]]>
 </INLINE>
 </FILE>
@@ -104,7 +104,7 @@ plexupdater_version()
 }
 
 plexupdater_update()
-{ set -x
+{
 	plexupdater_check_version
 	
 	#get filename from url
@@ -193,7 +193,7 @@ esac
 <![CDATA[
 Menu="NetworkServices"
 Icon="plexupdater.png"
-Version="1.1"
+Version="1.2"
 Author="Benni-chan"
 Type="php"
 Title="PMS Updater"
