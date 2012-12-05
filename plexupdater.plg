@@ -122,6 +122,7 @@ plexupdater_update()
 	
 	cd /boot/extra
 	echo "Downloading Plex Media Server $NEWVERSION..."
+	echo $URL
 	wget -q $URL
 	echo "Installing Plex Media Server $NEWVERSION..."
 	installpkg /boot/extra/${NEWFILENAME}
