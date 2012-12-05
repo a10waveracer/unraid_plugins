@@ -115,6 +115,10 @@ plexupdater_update()
 	
 	rm -f /boot/extra/PlexMediaServer-*.txz
 	
+	if [ ! -d "/boot/extra" ]; then
+		mkdir /boot/extra
+	fi
+	
 	cd /boot/extra
 	echo "Downloading Plex Media Server $NEWVERSION..."
 	wget -q ${URL}
