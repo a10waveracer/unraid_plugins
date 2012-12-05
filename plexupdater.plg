@@ -15,6 +15,7 @@ This UnRaid plugin will install and update the plex media server addon.
 <![CDATA[
 [ -d /usr/local/emhttp/plugins/plexupdater ] && rm -f -R /usr/local/emhttp/plugins/plexupdater
 [ -f /usr/local/sbin/plexupdater ] && rm -f /usr/local/sbin/plexupdater
+[ -f /boot/config/plugins/plexupdater/plgver.txt ] && rm -f /boot/config/plugins/plexupdater/plgver.txt
 rm /tmp/plexupdater-cleanup
 ]]>
 </INLINE>
@@ -34,7 +35,7 @@ PASSWORD=""
 <FILE Name="/boot/config/plugins/plexupdater/plgver.txt">
 <INLINE>
 <![CDATA[
-1.0
+1.1
 ]]>
 </INLINE>
 </FILE>
@@ -192,7 +193,7 @@ esac
 <![CDATA[
 Menu="NetworkServices"
 Icon="plexupdater.png"
-Version="1.0"
+Version="1.1"
 Author="Benni-chan"
 Type="php"
 Title="PMS Updater"
