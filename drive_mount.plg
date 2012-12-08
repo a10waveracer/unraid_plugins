@@ -338,9 +338,11 @@ disable_drive()
 		if [ $DRIVE_MOUNTED == "enable" ]; then
 			umount /dev/disk/by-id/$1-part1
 			rmdir $DRIVE_MOUNT
+			#device_mounted[$a]="disable"
 			write_config
-		elif [ $2 != "" ]; then
+		else
 			device_mount[$a]=$2
+			device_smb_share[$a]=$3
 			write_config
 		fi
 	fi
