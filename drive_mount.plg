@@ -246,6 +246,8 @@ mount_drive()
 	'reiserfs')
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
+		chown nobody:users $mountpoint
+		chmod 770 $mountpoint
 		mount -o noatime,nodiratime -t reiserfs /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
 	;;
 	'ntfs')
@@ -253,38 +255,52 @@ mount_drive()
 		then
 			echo "mounting $diskid"
 			mkdir -p $mountpoint
+			chown nobody:users $mountpoint
+			chmod 770 $mountpoint
 			mount -o umask=111,dmask=000 -t ntfs-3g /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
 		else
 			# mount the partition using the built in ntfs driver which is a readonly driver...
 			echo "mounting $diskid"
 			mkdir -p $mountpoint
+			chown nobody:users $mountpoint
+			chmod 770 $mountpoint
 			mount -r -o umask=111,dmask=000 -t ntfs /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
 		fi
 	;;
 	'vfat')
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
+		chown nobody:users $mountpoint
+		chmod 770 $mountpoint
 		mount -o rw,noauto,users,gid=users,exec,dmask=007,fmask=007,umask=017,noatime,nodiratime,shortname=mixed -t vfat /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
 	;;
 	'msdos')
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
+		chown nobody:users $mountpoint
+		chmod 770 $mountpoint
 		mount -r -t msdos /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
 	;;
 	'ext2')
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
+		chown nobody:users $mountpoint
+		chmod 770 $mountpoint
 		mount -r -t ext2 /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
 	;;
 	'ext3')
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
+		chown nobody:users $mountpoint
+		chmod 770 $mountpoint
 		# no support for ext3, try to mount it as ext2.
 		mount -r -t ext2 /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
 	;;
 	'hfsplus')
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
+		chown nobody:users $mountpoint
+		chmod 770 $mountpoint
 		mount -t hfsplus /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
 	;;
 	*)
