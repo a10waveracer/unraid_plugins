@@ -417,9 +417,11 @@ function checkMOUNTED(form,mounted)
 {
    if (mounted == "enable") {
       form.arg3.readOnly = true;
+	  form.arg4.readOnly = true;
    }
    else {
       form.arg3.readOnly = (form.arg1.value == "enable");
+	  form.arg4.readOnly = (form.arg1.value == "enable");
    }
 }
 </script>
@@ -451,8 +453,11 @@ foreach ($drive_mount_cfg as $drive_id => $drive_values)
          <td>Mount directory:</td>
          <td><input type="text" name="arg3" maxlength="100" value="<?=$drive_values['DRIVE_MOUNT'];?>"></td>
          </tr>
-		 <tr>
          <tr>
+         <td>SMB share (not yet working):</td>
+         <td><input type="text" name="arg4" maxlength="100" value="<?=$drive_values['SMB_SHARE'];?>"></td>
+         </tr>
+		 <tr>
          <td></td>
          <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
          </tr>
