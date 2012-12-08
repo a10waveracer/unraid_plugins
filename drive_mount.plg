@@ -2,11 +2,8 @@
 <PLUGIN>
 
 <!--
-2011-08-15 1bw - first release
-
 This UnRaid plugin will mount any drive, which is not part of the array
 at a configureable mount point
-
 -->
 
 <FILE Name="/boot/config/plugins/drive_mount/drive_mount.png">
@@ -394,7 +391,7 @@ esac
 <![CDATA[
 Menu="OtherSettings"
 Icon="drive_mount.png"
-Version="0.1-1bw"
+Version="0.2"
 Author="Benjamin Waller"
 Type="php"
 Title="Mount Drives"
