@@ -22,12 +22,13 @@ at a configureable mount point
 <INLINE>
 <![CDATA[
 #!/bin/bash
-
+#set -x
 
 write_config() {
 		echo "# drive_mount configuration" > /boot/config/plugins/drive_mount/drive_mount.cfg
-		for INDEX in ${!device_id[@]}; do
-			echo "[${device_id[$INDEX]}]" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+		for INDEX in ${!device_uuid[@]}; do
+			echo "[${device_uuid[$INDEX]}]" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+			echo "DRIVE_ID=\"${device_id[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 			echo "DRIVE_NAME=\"${device_disk[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 			echo "DRIVE_MOUNT=\"${device_mount[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 			echo "DRIVE_MOUNTED=\"${device_mounted[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
@@ -106,22 +107,29 @@ update_drives() {
 		done
 		
 		let a=0
-		disks=`ls --time-style="+%Y-%m-%d %I:%M%p" /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "scsi-SATA" | cut -c62-`
+		disks=`ls --time-style="+%Y-%m-%d %I:%M%p" /dev/disk/by-uuid/* -l | cut -c64-`
 		
 		while IFS=$'\n' read -ra VAR; do 
 			for i in "${VAR[@]}"
 			do
-				disk=`echo $i | cut -d " " -f 3 | cut -c7-`
-				id=`echo $i | cut -d " " -f 1`
+				partition=`echo $i | cut -d " " -f 3 | cut -c7-`
+				disk=`echo $partition | cut -c-3`
+				uuid=`echo $i | cut -d " " -f 1`
 				
-				m=`mount | grep "/dev/$disk" | cut -d " " -f 3`
+				m=`mount | grep "/dev/$partition" | cut -d " " -f 3`
 				
 				# check if not part of array
 				if [ "$(exists_name $disk)" == "" ]; then
-
-					fn_exists "cfg.section.$id"
+					
+					#id1=`smartctl -i /dev/$partition | grep "Device Model" | cut -c19-`
+					#id2=`smartctl -i /dev/$partition | grep "Serial Number" | cut -c19-`
+					#id=`echo $id1"_"$id2`
+					id=`ls --time-style="+%Y-%m-%d %I:%M%p" /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "scsi-SATA" | grep "/$disk" | cut -c66- | cut -d " " -f 1`
+					
+					fn_exists "cfg.section.$uuid"
 					if [ $? -eq 0 ]; then
-						cfg.section.$id
+						cfg.section.$uuid
+						
 						old_mount=$DRIVE_MOUNT
 						old_enabled=$DRIVE_ENABLED
 						old_share=$SMB_SHARE
@@ -151,7 +159,8 @@ update_drives() {
 						mounted="disable"
 					fi
 
-					device_disk[$a]="$disk"
+					device_uuid[$a]="$uuid"
+					device_disk[$a]="$partition"
 					device_id[$a]="$id"
 					device_mount[$a]="$mpoint"
 					device_mounted[$a]="$mounted"
@@ -164,17 +173,20 @@ update_drives() {
 	else # otherwise just check if drives in config are mounted
 		let a=0
 		
-		disks=`ls --time-style="+%Y-%m-%d %I:%M%p" /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "scsi-SATA" | cut -c62-`
+		disks=`ls --time-style="+%Y-%m-%d %I:%M%p" /dev/disk/by-uuid/* -l | cut -c64-`
 		while IFS=$'\n' read -ra VAR; do
 			for i in "${VAR[@]}"; do
-				disk=`echo $i | cut -d " " -f 3 | cut -c7-`
-				id=`echo $i | cut -d " " -f 1`
+				partition=`echo $i | cut -d " " -f 3 | cut -c7-`
+				disk=`echo $partition | cut -c-3`
+				uuid=`echo $i | cut -d " " -f 1`
 
-				m=`mount | grep "/dev/$disk" | cut -d " " -f 3`
+				m=`mount | grep "/dev/$partition" | cut -d " " -f 3`
 				
-				fn_exists "cfg.section.$id"
+				id=`ls --time-style="+%Y-%m-%d %I:%M%p" /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "scsi-SATA" | grep "/$disk" | cut -c66- | cut -d " " -f 1`
+				
+				fn_exists "cfg.section.$uuid"
 				if [ $? -eq 0 ]; then
-					cfg.section.$id
+					cfg.section.$uuid
 					
 					if [ "$m" != "" ]; then
 						mounted="enable"
@@ -182,12 +194,14 @@ update_drives() {
 						mounted="disable"
 					fi
 					
-					device_disk[$a]="$disk"
+					device_uuid[$a]="$uuid"
+					device_disk[$a]="$partition"
 					device_id[$a]="$id"
-					device_mount[$a]=$DRIVE_MOUNT
+					device_mount[$a]="$DRIVE_MOUNT"
 					device_mounted[$a]="$mounted"
 					device_enabled[$a]="$DRIVE_ENABLED"
 					device_smb_share[$a]="$SMB_SHARE"
+					
 					let a=a+1
 					
 				else
@@ -205,10 +219,7 @@ mount_all()
 	for INDEX in "${!device_id[@]}"; do
 		if [[ ${device_enabled[$INDEX]} == "enable" && ${device_mounted[$INDEX]} != "enable" ]]; then
 			if [[ ! -d ${device_mount[$INDEX]} || ! "$(ls -A ${device_mount[$INDEX]})" ]]; then
-				#echo mounting ${device_disk[$INDEX]}
-				#mkdir -p ${device_mount[$INDEX]}
-				#mount /dev/disk/by-id/${device_id[$INDEX]}-part1 ${device_mount[$INDEX]}
-				mount_drive ${device_id[$INDEX]} ${device_mount[$INDEX]}
+				mount_drive ${device_uuid[$INDEX]} ${device_mount[$INDEX]} ${device_disk[$INDEX]}
 			fi
 		fi
 	done
@@ -219,11 +230,11 @@ mount_all()
 
 mount_drive()
 {
-	diskid=$1
+	diskuuid=$1
 	mountpoint=$2
+	diskname=$3
 	
-	
-	filesystem=`blkid -o value -s TYPE "/dev/disk/by-id/$diskid-part1"`
+	filesystem=`blkid -o value -s TYPE "/dev/disk/by-uuid/$diskuuid"`
 	if [ -z "$filesystem" ]
 	then
 		echo "Error opening partition or maybe no filesystem exists, cannot be mounted for device: $diskid"
@@ -232,9 +243,9 @@ mount_drive()
 	
 	case "$filesystem" in
 	'reiserfs')
-		echo "mounting $diskid"
+		echo "mounting $diskname"
 		mkdir -p $mountpoint
-		mount -o noatime,nodiratime -t reiserfs /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
+		mount -o noatime,nodiratime -t reiserfs -U $diskuuid $mountpoint 2>&1
 		chown nobody:users $mountpoint
 		chmod 770 $mountpoint
 	;;
@@ -243,14 +254,14 @@ mount_drive()
 		then
 			echo "mounting $diskid"
 			mkdir -p $mountpoint
-			mount -o umask=111,dmask=000 -t ntfs-3g /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
+			mount -o umask=111,dmask=000 -t ntfs-3g -U $diskuuid $mountpoint 2>&1
 			chown nobody:users $mountpoint
 			chmod 770 $mountpoint
 		else
 			# mount the partition using the built in ntfs driver which is a readonly driver...
 			echo "mounting $diskid"
 			mkdir -p $mountpoint
-			mount -r -o umask=111,dmask=000 -t ntfs /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
+			mount -r -o umask=111,dmask=000 -t ntfs -U $diskuuid $mountpoint 2>&1
 			chown nobody:users $mountpoint
 			chmod 770 $mountpoint
 		fi
@@ -258,19 +269,19 @@ mount_drive()
 	'vfat')
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
-		mount -o rw,noauto,users,gid=users,exec,dmask=007,fmask=007,umask=017,noatime,nodiratime,shortname=mixed -t vfat /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
+		mount -o rw,noauto,users,gid=users,exec,dmask=007,fmask=007,umask=017,noatime,nodiratime,shortname=mixed -t vfat -U $diskuuid $mountpoint 2>&1
 	;;
 	'msdos')
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
-		mount -r -t msdos /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
+		mount -r -t msdos -U $diskuuid $mountpoint 2>&1
 		chown nobody:users $mountpoint
 		chmod 770 $mountpoint
 	;;
 	'ext2')
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
-		mount -r -t ext2 /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
+		mount -r -t ext2 -U $diskuuid $mountpoint 2>&1
 		chown nobody:users $mountpoint
 		chmod 770 $mountpoint
 	;;
@@ -278,14 +289,14 @@ mount_drive()
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
 		# no support for ext3, try to mount it as ext2.
-		mount -r -t ext2 /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
+		mount -r -t ext2 -U $diskuuid $mountpoint 2>&1
 		chown nobody:users $mountpoint
 		chmod 770 $mountpoint
 	;;
 	'hfsplus')
 		echo "mounting $diskid"
 		mkdir -p $mountpoint
-		mount -t hfsplus /dev/disk/by-id/$diskid-part1 $mountpoint 2>&1
+		mount -t hfsplus -U $diskuuid $mountpoint 2>&1
 		chown nobody:users $mountpoint
 		chmod 770 $mountpoint
 	;;
@@ -319,8 +330,6 @@ enable_drive()
 			device_smb_share[$a]=$3
 			
 			if [[ ! -d $2 || ! "$(ls -A $2)" ]]; then
-				#mkdir -p $2
-				#mount /dev/disk/by-id/$1-part1 $2
 				mount_drive $1 $2
 				device_enabled[$a]="enable"
 			fi
@@ -349,15 +358,13 @@ disable_drive()
 		
 		device_enabled[$a]="disable"
 		if [ $DRIVE_MOUNTED == "enable" ]; then
-			umount /dev/disk/by-id/$1-part1
+			umount /dev/disk/by-uuid/$1
 			rmdir $DRIVE_MOUNT
-			#device_mounted[$a]="disable"
-			write_config
 		else
 			device_mount[$a]=$2
 			device_smb_share[$a]=$3
-			write_config
 		fi
+		write_config
 	fi
 }
 
@@ -443,17 +450,17 @@ function checkMOUNTED(form,mounted)
 <?PHP
 $total_drives = count($drive_mount_cfg);
 $i++;
-foreach ($drive_mount_cfg as $drive_id => $drive_values)
+foreach ($drive_mount_cfg as $drive_uuid => $drive_values)
 {
 	
 ?>
    <form name="drive_mount_settings_<?=$i?>" method="POST" action="/update.htm" target="progressFrame">
       <input type="hidden" name="cmd" value="/boot/config/plugins/drive_mount/drive_mount.sh">
-	  <input type="hidden" name="arg2" value="<?=$drive_id?>">
+	  <input type="hidden" name="arg2" value="<?=$drive_uuid?>">
       <table class="settings">
          <tr>
          <td>Drive:</td>
-         <td><?=$drive_id?> (<?=$drive_values['DRIVE_NAME']?>)</td>
+         <td><?=$drive_values['DRIVE_ID']?> (<?=$drive_values['DRIVE_NAME']?>)</td>
          </tr>
 		 <tr>
          <td>Enable Drive:</td>
