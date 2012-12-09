@@ -25,15 +25,6 @@ at a configureable mount point
 
 
 write_config() {
-	if [[ ${#device_id[*]} == 0 ]]; then
-		echo "# empty configuration" > /boot/config/plugins/drive_mount/drive_mount.cfg
-		# echo "[]" >> /boot/config/plugins/drive_mount/drive_mount.cfg
-		# echo "DRIVE_NAME=" >> /boot/config/plugins/drive_mount/drive_mount.cfg
-		# echo "DRIVE_MOUNT=" >> /boot/config/plugins/drive_mount/drive_mount.cfg
-		# echo "DRIVE_MOUNTED=" >> /boot/config/plugins/drive_mount/drive_mount.cfg
-		# echo "DRIVE_ENABLED=" >> /boot/config/plugins/drive_mount/drive_mount.cfg
-		# echo "SMB_SHARE=" >> /boot/config/plugins/drive_mount/drive_mount.cfg
-	else
 		echo "# drive_mount configuration" > /boot/config/plugins/drive_mount/drive_mount.cfg
 		for INDEX in ${!device_id[@]}; do
 			echo "[${device_id[$INDEX]}]" >> /boot/config/plugins/drive_mount/drive_mount.cfg
@@ -43,14 +34,10 @@ write_config() {
 			echo "DRIVE_ENABLED=\"${device_enabled[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 			echo "SMB_SHARE=\"${device_smb_share[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 		done
-	fi
 }
 
 cfg.parser () {
-	
-	LINE=`cat /boot/config/plugins/drive_mount/drive_mount.cfg`
-	#echo $LINE
-	if [[ $LINE != "# empty configuration" ]]; then
+	if [[ `grep -F "[" $1` != "" ]]; then
 		ini="$(<$1)"				# read the file
 		ini="${ini//[/\[}"			# escape [
 		ini="${ini//]/\]}"			# escape ]
@@ -93,7 +80,6 @@ cfg.writer () {
 }
 
 update_drives() {
-	
 	function exists_name {
 		for INDEX in ${!drive_name[@]}; do
 			if [ "${drive_name[$INDEX]}" == "$1" ]; then
@@ -110,7 +96,7 @@ update_drives() {
 		do
 			case $ini in
 				deviceSb*)
-					continue
+					continue #ignore deviceSb lines in disks.ini
 				;;
 				device*)
 					device=`echo "$ini" | sed -e "s/\([^=]*\)=\([^=]*\)/\2/" -e "s/\\r//" -e "s/\"//g"`
@@ -120,9 +106,11 @@ update_drives() {
 		done
 		
 		let a=0
-		disks=`ls --time-style='+%Y-%m-%d %I:%M%p' /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "scsi-SATA" | cut -c62-`
-		while IFS='\n' read -ra VAR; do 
-			for i in "${VAR[@]}"; do
+		disks=`ls --time-style="+%Y-%m-%d %I:%M%p" /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "scsi-SATA" | cut -c62-`
+		
+		while IFS=$'\n' read -ra VAR; do 
+			for i in "${VAR[@]}"
+			do
 				disk=`echo $i | cut -d " " -f 3 | cut -c7-`
 				id=`echo $i | cut -d " " -f 1`
 				
@@ -176,8 +164,8 @@ update_drives() {
 	else # otherwise just check if drives in config are mounted
 		let a=0
 		
-		disks=`ls --time-style='+%Y-%m-%d %I:%M%p' /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "scsi-SATA" | cut -c62-`
-		while IFS='\n' read -ra VAR; do 
+		disks=`ls --time-style="+%Y-%m-%d %I:%M%p" /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "scsi-SATA" | cut -c62-`
+		while IFS='$\n' read -ra VAR; do 
 			for i in "${VAR[@]}"; do
 				disk=`echo $i | cut -d " " -f 3 | cut -c7-`
 				id=`echo $i | cut -d " " -f 1`
@@ -356,6 +344,7 @@ disable_drive()
 	}
 	
 	a=$(exists_id $1)
+	
 	fn_exists "cfg.section.$1"
 	if [ $? -eq 0 ]; then
 		cfg.section.$1
@@ -438,7 +427,6 @@ Title="Mount Drives"
 shell_exec("/boot/config/plugins/drive_mount/drive_mount.sh update");
 $drive_mount_cfg = parse_ini_file( "/boot/config/plugins/drive_mount/drive_mount.cfg",TRUE);
 
-
 ?>
 <script type="text/javascript">
 function checkMOUNTED(form,mounted)
@@ -453,7 +441,6 @@ function checkMOUNTED(form,mounted)
    }
 }
 </script>
-
 
 <?PHP
 $total_drives = count($drive_mount_cfg);
@@ -498,7 +485,7 @@ foreach ($drive_mount_cfg as $drive_id => $drive_values)
 
 <?PHP
 if ($i < $total_drives) {
-	echo "<hr>";
+	echo "<hr><br><br>";
 }
 $i++
 
