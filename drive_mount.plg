@@ -10,10 +10,27 @@ at a configureable mount point
 <URL>--no-check-certificate https://github.com/Benni-chan/unraid_plugins/raw/master/support_files/drive_mount.png</URL>
 </FILE>
 
+<FILE Name="/tmp/drive_mount-cleanup" Run="/bin/bash">
+<INLINE>
+<![CDATA[
+[ -d /usr/local/emhttp/plugins/drive_mount ] && rm -f -R /usr/local/emhttp/plugins/drive_mount
+[ -f /boot/config/plugins/drive_mount/drive_mount.sh ] && rm -f /boot/config/plugins/drive_mount/drive_mount.sh
+rm /tmp/drive_mount-cleanup
+]]>
+</INLINE>
+</FILE>
+
 <FILE Name="/boot/config/plugins/drive_mount/drive_mount.cfg">
 <INLINE>
 <![CDATA[
 # empty configuration
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/boot/config/plugins/drive_mount/drive_smb_shares.cfg">
+<INLINE>
+<![CDATA[
 ]]>
 </INLINE>
 </FILE>
@@ -33,7 +50,8 @@ write_config() {
 			echo "DRIVE_MOUNT=\"${device_mount[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 			echo "DRIVE_MOUNTED=\"${device_mounted[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 			echo "DRIVE_ENABLED=\"${device_enabled[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
-			echo "SMB_SHARE=\"${device_smb_share[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+			echo "SMB_EXPORT=\"${device_smb_export[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+			echo "SMB_SEC=\"${device_smb_sec[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 		done
 }
 
@@ -116,14 +134,11 @@ update_drives() {
 				disk=`echo $partition | cut -c-3`
 				uuid=`echo $i | cut -d " " -f 1`
 				
-				m=`mount | grep "/dev/$partition" | cut -d " " -f 3`
+				m=`mount | grep "/dev/$partition" | cut -d " " -f 3 | cut -c6-`
 				
 				# check if not part of array
 				if [ "$(exists_name $disk)" == "" ]; then
 					
-					#id1=`smartctl -i /dev/$partition | grep "Device Model" | cut -c19-`
-					#id2=`smartctl -i /dev/$partition | grep "Serial Number" | cut -c19-`
-					#id=`echo $id1"_"$id2`
 					id=`ls --time-style="+%Y-%m-%d %I:%M%p" /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "scsi-SATA" | grep "/$disk" | cut -c66- | cut -d " " -f 1`
 					
 					fn_exists "cfg.section.$uuid"
@@ -132,13 +147,15 @@ update_drives() {
 						
 						old_mount=$DRIVE_MOUNT
 						old_enabled=$DRIVE_ENABLED
-						old_share=$SMB_SHARE
+						old_smb_export=$SMB_EXPORT
+						old_smb_sec=$SMB_SEC
 					else
 						old_mount=""
 						old_enabled=""
-						old_share=""
+						old_smb_export=""
+						old_smb_sec=""
 					fi
-
+					
 					if [ "$m" != "" ]; then
 						enabled="enable"
 					elif [ "$old_enabled" == "" ]; then
@@ -158,14 +175,16 @@ update_drives() {
 					else
 						mounted="disable"
 					fi
-
+					
 					device_uuid[$a]="$uuid"
 					device_disk[$a]="$partition"
 					device_id[$a]="$id"
 					device_mount[$a]="$mpoint"
 					device_mounted[$a]="$mounted"
 					device_enabled[$a]="$enabled"
-					device_smb_share[$a]="$old_share"
+					device_smb_export[$a]="$old_smb_export"
+					device_smb_sec[$a]="$old_smb_sec"
+					
 					let a=a+1
 				fi
 			done
@@ -180,7 +199,7 @@ update_drives() {
 				disk=`echo $partition | cut -c-3`
 				uuid=`echo $i | cut -d " " -f 1`
 
-				m=`mount | grep "/dev/$partition" | cut -d " " -f 3`
+				m=`mount | grep "/dev/$partition" | cut -d " " -f 3 | cut -c6-`
 				
 				id=`ls --time-style="+%Y-%m-%d %I:%M%p" /dev/disk/by-id/* -l | grep -v -- "-part" | grep -v -- "wwn" | grep -v -- "scsi-SATA" | grep "/$disk" | cut -c66- | cut -d " " -f 1`
 				
@@ -200,7 +219,8 @@ update_drives() {
 					device_mount[$a]="$DRIVE_MOUNT"
 					device_mounted[$a]="$mounted"
 					device_enabled[$a]="$DRIVE_ENABLED"
-					device_smb_share[$a]="$SMB_SHARE"
+					device_smb_export[$a]="$SMB_EXPORT"
+					device_smb_sec[$a]="$SMB_SEC"
 					
 					let a=a+1
 					
@@ -215,10 +235,9 @@ update_drives() {
 
 mount_all()
 {
-	update_drives
 	for INDEX in "${!device_id[@]}"; do
 		if [[ ${device_enabled[$INDEX]} == "enable" && ${device_mounted[$INDEX]} != "enable" ]]; then
-			if [[ ! -d ${device_mount[$INDEX]} || ! "$(ls -A ${device_mount[$INDEX]})" ]]; then
+			if [[ ! -d /mnt/${device_mount[$INDEX]} || ! "$(ls -A /mnt/${device_mount[$INDEX]})" ]]; then
 				mount_drive ${device_uuid[$INDEX]} ${device_mount[$INDEX]} ${device_disk[$INDEX]}
 			fi
 		fi
@@ -226,12 +245,14 @@ mount_all()
 	
 	update_drives
 	write_config
+	sleep 2
+	smb_update
 }
 
 mount_drive()
 {
 	diskuuid=$1
-	mountpoint=$2
+	mountpoint=/mnt/$2
 	diskname=$3
 	
 	filesystem=`blkid -o value -s TYPE "/dev/disk/by-uuid/$diskuuid"`
@@ -310,11 +331,9 @@ mount_drive()
 
 enable_drive()
 {
-	update_drives
-	
 	function exists_id {
-		for INDEX in ${!device_id[@]}; do
-			if [ "${device_id[$INDEX]}" == "$1" ]; then
+		for INDEX in ${!device_uuid[@]}; do
+			if [ "${device_uuid[$INDEX]}" == "$1" ]; then
 				echo "$INDEX"
 			fi
 		done
@@ -327,7 +346,6 @@ enable_drive()
 		
 		if [ $DRIVE_MOUNTED != "enable" ]; then
 			device_mount[$a]=$2
-			device_smb_share[$a]=$3
 			
 			if [[ ! -d $2 || ! "$(ls -A $2)" ]]; then
 				mount_drive $1 $2
@@ -336,15 +354,71 @@ enable_drive()
 			write_config
 		fi
 	fi
+	update_drives
+	smb_update
 }
 
 disable_drive()
 {
-	update_drives
-	
 	function exists_id {
-		for INDEX in ${!device_id[@]}; do
-			if [ "${device_id[$INDEX]}" == "$1" ]; then
+		for INDEX in ${!device_uuid[@]}; do
+			if [ "${device_uuid[$INDEX]}" == "$1" ]; then
+				echo "$INDEX"
+			fi
+		done
+	}
+	
+	a=$(exists_id $1)
+	fn_exists "cfg.section.$1"
+	if [ $? -eq 0 ]; then
+		cfg.section.$1
+		
+		device_enabled[$a]="disable"
+		if [ $DRIVE_MOUNTED == "enable" ]; then
+			umount /dev/disk/by-uuid/$1
+			rmdir /mnt/$DRIVE_MOUNT
+		else
+			device_mount[$a]=$2
+		fi
+		write_config
+	fi
+	
+	smb_update
+}
+
+fn_exists()
+{
+	type $1 2>/dev/null | grep -q 'is a function'
+}
+
+smb_update()
+{
+	rm -f /boot/config/plugins/drive_mount/drive_smb_shares.cfg
+	touch /boot/config/plugins/drive_mount/drive_smb_shares.cfg
+	
+	for INDEX in "${!device_uuid[@]}"; do
+		if [[ ${device_enabled[$INDEX]} == "enable" && ${device_mounted[$INDEX]} == "enable" ]]; then
+			if [[ ${device_smb_export[$INDEX]} != "-" ]]; then
+				echo "[${device_mount[$INDEX]}]" >> /boot/config/plugins/drive_mount/drive_smb_shares.cfg
+				echo "	path = /mnt/${device_mount[$INDEX]}" >> /boot/config/plugins/drive_mount/drive_smb_shares.cfg
+				echo "	browseable = yes" >> /boot/config/plugins/drive_mount/drive_smb_shares.cfg
+				echo "	public = yes" >> /boot/config/plugins/drive_mount/drive_smb_shares.cfg
+				echo "	writeable = yes" >> /boot/config/plugins/drive_mount/drive_smb_shares.cfg
+			fi
+		fi
+	done
+	echo "restarting SMB"
+	CMDLINE="/etc/rc.d/rc.samba restart"
+	nohup $CMDLINE > /dev/null 2>&1 &
+	sleep 1
+	echo "... OK"
+}
+
+smb_config()
+{
+	function exists_id {
+		for INDEX in ${!device_uuid[@]}; do
+			if [ "${device_uuid[$INDEX]}" == "$1" ]; then
 				echo "$INDEX"
 			fi
 		done
@@ -355,53 +429,42 @@ disable_drive()
 	fn_exists "cfg.section.$1"
 	if [ $? -eq 0 ]; then
 		cfg.section.$1
-		
-		device_enabled[$a]="disable"
-		if [ $DRIVE_MOUNTED == "enable" ]; then
-			umount /dev/disk/by-uuid/$1
-			rmdir $DRIVE_MOUNT
-		else
-			device_mount[$a]=$2
-			device_smb_share[$a]=$3
-		fi
+
+		device_smb_export[$a]=$2
+		device_smb_sec[$a]=$3
 		write_config
 	fi
-}
-
-fn_exists()
-{
-	type $1 2>/dev/null | grep -q 'is a function'
-}
-
-
-smb_update()
-{
-	echo $(cat /boot/config/smb-extra.conf)
+	
+	smb_update
 }
 
 
 # read our configuration
 cfg.parser '/boot/config/plugins/drive_mount/drive_mount.cfg'
 
+update_drives
+
 case "$1" in
 'update')
-  update_drives
   write_config
   ;;
 'enable')
-  enable_drive $2 $3 $4
+  enable_drive $2 $3
   ;;
 'disable')
-  disable_drive $2 $3 $4
+  disable_drive $2 $3
   ;;
 'mount')
   mount_all
+  ;;
+'smb_config')
+  smb_config $2 $3 $4
   ;;
 'smb_update')
   smb_update
   ;;
 *)
-  echo "usage $0 enable|disable|mount|update"
+  echo "usage $0 enable|disable|mount|update|smb_update"
 esac
 
 ]]>
@@ -438,13 +501,19 @@ function checkMOUNTED(form,mounted)
 {
    if (mounted == "enable") {
       form.arg3.readOnly = true;
-	  form.arg4.readOnly = true;
+	  //form.smb_select.disabled = true;
    }
    else {
       form.arg3.readOnly = (form.arg1.value == "enable");
-	  form.arg4.readOnly = (form.arg1.value == "enable");
+	  //form.smb_select.disabled = (form.arg1.value == "enable");
    }
 }
+
+/*function checkSMB(form)
+{
+	form.arg4.value = form.smb_select.options[form.smb_select.selectedIndex].value;
+}
+*/
 </script>
 
 <?PHP
@@ -470,19 +539,173 @@ foreach ($drive_mount_cfg as $drive_uuid => $drive_values)
             </select></td>
          </tr>
          <tr>
-         <td>Mount directory:</td>
+         <td>Drive name:</td>
          <td><input type="text" name="arg3" maxlength="100" value="<?=$drive_values['DRIVE_MOUNT'];?>"></td>
          </tr>
-         <tr>
-         <td>SMB share (not yet working):</td>
-         <td><input type="text" name="arg4" maxlength="100" value="<?=$drive_values['SMB_SHARE'];?>"></td>
-         </tr>
+         <!--<tr>
+         <td>SMB share:</td>
+         <td><select name="smb_select" size="1" onChange="checkSMB(this.form);">
+            <?=mk_option($drive_values['SMB_SHARE'], "disable", "No");?>
+            <?=mk_option($drive_values['SMB_SHARE'], "public", "Public");?>
+			<?=mk_option($drive_values['SMB_SHARE'], "secure", "Secure");?>
+			<?=mk_option($drive_values['SMB_SHARE'], "private", "Private");?>
+			</select></td>
+			<input type="hidden" name="arg4" value="<?=$drive_values['SMB_SHARE'];?>">
+         </tr>-->
 		 <tr>
-         <td></td>
+         <td>
+         </td>
          <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
          </tr>
       </table>
-   </form>
+   </form><br>
+
+   <? if ($var['shareSMBEnabled']=="no"): ?>
+         <p class="notice">SMB is not enabled</p>
+   <?    return; ?>
+   <? endif; ?>
+	
+   <? if ($var['shareSMBEnabled']=="ads"): ?>
+	
+         <form method="POST" name="drive_mount_smb_settings_<?=$i?>" action="/update.htm" target="progressFrame">
+			<input type="hidden" name="cmd" value="/boot/config/plugins/drive_mount/drive_mount.sh">
+			<input type="hidden" name="arg1" value="smb_config">
+			<input type="hidden" name="arg2" value="<?=$drive_uuid?>">
+			<table class="settings">
+               <tr>
+               <td>Export:</td>
+               <td><select name="arg3" size="1">
+               <?=mk_option($drive_values['SMB_EXPORT'], "-", "No");?>
+               <?=mk_option($drive_values['SMB_EXPORT'], "e", "Yes");?>
+               <?=mk_option($drive_values['SMB_EXPORT'], "eh", "Yes (hidden)");?>
+               </select></td>
+               </tr>
+               <tr>
+               <td></td>
+               <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
+               </tr>
+		    </table>
+         </form>
+   
+   <?    return; ?>
+   <? endif; ?>
+
+      <form method="POST" name="drive_mount_smb_settings_<?=$i?>" action="/update.htm" target="progressFrame">
+		 <input type="hidden" name="cmd" value="/boot/config/plugins/drive_mount/drive_mount.sh">
+		 <input type="hidden" name="arg1" value="smb_config">
+		 <input type="hidden" name="arg2" value="<?=$drive_uuid?>">
+         <table class="settings">
+            <tr>
+            <td>Export:</td>
+            <td><select name="arg3" size="1">
+            <?=mk_option($drive_values['SMB_EXPORT'], "-", "No");?>
+            <?=mk_option($drive_values['SMB_EXPORT'], "e", "Yes");?>
+            <?=mk_option($drive_values['SMB_EXPORT'], "eh", "Yes (hidden)", "disabled");?>
+            </select></td>
+            </tr>
+            <tr>
+            <td>Security:</td>
+            <td><select name="arg4" size="1">
+            <?=mk_option($drive_values['SMB_SEC'], "public", "Public");?>
+            <?=mk_option($drive_values['SMB_SEC'], "secure", "Secure", "disabled");?>
+   <?       if ($var['featureSecurityUser']): ?>
+               <?=mk_option($drive_values['SMB_SEC'], "private", "Private", "disabled");?>
+   <?       else: ?>
+               <?=mk_option($drive_values['SMB_SEC'], "private", "Private", "disabled");?>
+   <?       endif; ?>
+            </select></td>
+            </tr>
+            <tr>
+            <td></td>
+            <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
+            </tr>
+         </table>
+      </form>
+   <!--  
+   <? if ($drive_values['SMB_SEC']=="secure"): ?>
+         <form method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="shareName" value="<?=$name;?>">
+            <table class="access_list">
+   	    <tr>
+   	    <td>User</td>
+   	    <td>Access</td>
+   	    </tr>
+            
+   <?          $write_list = explode(",", $sec[$name]['writeList']); ?>
+            
+   <?          foreach ($users as $user): ?>
+   <?             if ($user['name'] == "root"): ?>
+                     <input type="hidden" name="userAccess.<?=$user['idx'];?>" value="no-access">
+   <?                continue; ?>
+   <?             endif; ?>
+
+   <?             if (in_array( $user['name'], $write_list)): ?>
+   <?                $userAccess = "read-write"; ?>
+   <?             else: ?>
+   <?                $userAccess = "read-only"; ?>
+   <?             endif; ?>
+               
+                  <tr>
+                  <td><?=$user['name'];?></td>
+                  <td><select name="userAccess.<?=$user['idx'];?>" size="1">
+                  <?=mk_option($userAccess, "read-write", "Read/Write");?>
+                  <?=mk_option($userAccess, "read-only", "Read-only");?>
+                  </select></td>
+                  </tr>
+   <?          endforeach; ?>
+            
+               <tr>
+               <td></td>
+               <td><input type="submit" name="changeShareAccess" value="Apply"><button type="button" onClick="done();">Done</button></td>
+               </tr>
+            </table>
+         </form>
+   <? endif; ?>
+ 
+   <? if ($drive_values['SMB_SEC']=="private"): ?>
+         <form method="POST" action="/update.htm" target="progressFrame">
+            <input type="hidden" name="shareName" value="<?=$name;?>">
+            <table class="access_list">
+   	    <tr>
+   	    <td>User</td>
+   	    <td>Access</td>
+   	    </tr>
+
+   <?          $read_list = explode(",", $sec[$name]['readList']); ?>
+   <?          $write_list = explode(",", $sec[$name]['writeList']); ?>
+            
+   <?          foreach ($users as $user): ?>
+   <?             if ($user['name'] == "root"): ?>
+                     <input type="hidden" name="userAccess.<?=$user['idx'];?>" value="no-access">
+   <?                continue; ?>
+   <?             endif; ?>
+
+   <?             if (in_array( $user['name'], $write_list)): ?>
+   <?                $userAccess = "read-write"; ?>
+   <?             elseif (in_array( $user['name'], $read_list)): ?>
+   <?                $userAccess = "read-only"; ?>
+   <?             else: ?>
+   <?                $userAccess = "no-access"; ?>
+   <?             endif; ?>
+               
+                  <tr>
+                  <td><?=$user['name'];?></td>
+                  <td><select name="userAccess.<?=$user['idx'];?>" size="1">
+                  <?=mk_option($userAccess, "read-write", "Read/Write");?>
+                  <?=mk_option($userAccess, "read-only", "Read-only");?>
+                  <?=mk_option($userAccess, "no-access", "No Access");?>
+                  </select></td>
+                  </tr>
+   <?          endforeach; ?>
+            
+               <tr>
+               <td></td>
+               <td><input type="submit" name="changeShareAccess" value="Apply"><button type="button" onClick="done();">Done</button></td>
+               </tr>
+            </table>
+         </form>
+   <? endif; ?>
+   -->
 
 	<script type="text/javascript">
 		checkMOUNTED(document.drive_mount_settings_<?=$i?>,'<?=$drive_values['DRIVE_MOUNTED']?>');
@@ -506,8 +729,15 @@ $i++
 <FILE Name="/tmp/drive_mount-install" Run="/bin/bash">
 <INLINE>
 <![CDATA[
+# include smb share config
+share_line="include = /boot/config/plugins/drive_mount/drive_smb_shares.cfg"
+share_line_config=`cat /boot/config/smb-extra.conf | grep "$share_line"`
+
+if [[ $share_line_config == "" ]]; then
+	echo "$share_line" >> /boot/config/smb-extra.conf
+fi
+
 # update drives and mount enabled ones
-/boot/config/plugins/drive_mount/drive_mount.sh update
 /boot/config/plugins/drive_mount/drive_mount.sh mount
 
 # clean up
