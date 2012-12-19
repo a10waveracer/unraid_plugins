@@ -127,7 +127,8 @@ plexupdater_update()
 	nohup installpkg /boot/extra/$NEWFILENAME > /dev/null 2>&1 &
 	
 	if [[ "$CURRENTVERSION" != "" ]]; then
-		/etc/rc.d/rc.plexmediaserver start
+		CMDLINE="/etc/rc.d/rc.plexmediaserver start"
+		nohup $CMDLINE > /dev/null 2>&1 &
 	fi
 	
 	sleep 3
