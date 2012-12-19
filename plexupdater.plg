@@ -35,7 +35,7 @@ PASSWORD=""
 <FILE Name="/boot/config/plugins/plexupdater/plgver.txt">
 <INLINE>
 <![CDATA[
-1.2
+1.3
 ]]>
 </INLINE>
 </FILE>
@@ -108,7 +108,7 @@ plexupdater_update()
 	plexupdater_check_version
 	
 	#get filename from url
-	NEWFILENAME=`echo $STABLEURL | sed -e 's/^[0-9A-Za-z./:-]*\///'`
+	NEWFILENAME=`echo $URL | sed -e 's/^[0-9A-Za-z./:-]*\///'`
 	
 	if [ -e "/etc/rc.d/rc.plexmediaserver" ]; then
 		/etc/rc.d/rc.plexmediaserver stop
@@ -193,7 +193,7 @@ esac
 <![CDATA[
 Menu="NetworkServices"
 Icon="plexupdater.png"
-Version="1.2"
+Version="1.3"
 Author="Benni-chan"
 Type="php"
 Title="PMS Updater"
