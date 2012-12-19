@@ -408,9 +408,10 @@ smb_update()
 		fi
 	done
 	echo "restarting SMB"
-	CMDLINE="/etc/rc.d/rc.samba restart"
-	nohup $CMDLINE > /dev/null 2>&1 &
-	sleep 1
+	#CMDLINE="/etc/rc.d/rc.samba restart"
+	#nohup $CMDLINE > /dev/null 2>&1 &
+	/etc/rc.d/rc.samba restart > /dev/null 2>&1 &
+	sleep 3
 	echo "... OK"
 }
 
