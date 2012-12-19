@@ -124,7 +124,7 @@ plexupdater_update()
 	echo "Downloading Plex Media Server $NEWVERSION..."
 	wget -q $URL
 	echo "Installing Plex Media Server $NEWVERSION..."
-	installpkg /boot/extra/$NEWFILENAME
+	nohup installpkg /boot/extra/$NEWFILENAME > /dev/null 2>&1 &
 	
 	if [[ "$CURRENTVERSION" != "" ]]; then
 		/etc/rc.d/rc.plexmediaserver start
