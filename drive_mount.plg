@@ -50,6 +50,9 @@ write_config() {
 			echo "DRIVE_MOUNT=\"${device_mount[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 			echo "DRIVE_MOUNTED=\"${device_mounted[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 			echo "DRIVE_ENABLED=\"${device_enabled[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+			echo "DRIVE_LABEL=\"${device_label[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+			echo "DRIVE_SIZE=\"${device_size[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
+			echo "DRIVE_FORMAT=\"${device_format[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 			echo "SMB_EXPORT=\"${device_smb_export[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 			echo "SMB_SEC=\"${device_smb_sec[$INDEX]}\"" >> /boot/config/plugins/drive_mount/drive_mount.cfg
 		done
@@ -176,12 +179,19 @@ update_drives() {
 						mounted="disable"
 					fi
 					
+					filesystem=`blkid -o value -s TYPE "/dev/disk/by-uuid/$uuid"`
+					label=`blkid -o value -s LABEL "/dev/disk/by-uuid/$uuid"`
+					size=`blockdev --getsize64 /dev/$partition`
+					
 					device_uuid[$a]="$uuid"
 					device_disk[$a]="$partition"
 					device_id[$a]="$id"
 					device_mount[$a]="$mpoint"
 					device_mounted[$a]="$mounted"
 					device_enabled[$a]="$enabled"
+					device_format[$a]="$filesystem"
+					device_label[$a]="$label"
+					device_size[$a]="$size"
 					device_smb_export[$a]="$old_smb_export"
 					device_smb_sec[$a]="$old_smb_sec"
 					
@@ -213,14 +223,21 @@ update_drives() {
 						mounted="disable"
 					fi
 					
+					filesystem=`blkid -o value -s TYPE "/dev/disk/by-uuid/$uuid"`
+					label=`blkid -o value -s LABEL "/dev/disk/by-uuid/$uuid"`
+					size=`blockdev --getsize64 /dev/$partition`
+					
 					device_uuid[$a]="$uuid"
 					device_disk[$a]="$partition"
 					device_id[$a]="$id"
-					device_mount[$a]="$DRIVE_MOUNT"
+					device_mount[$a]="$mpoint"
 					device_mounted[$a]="$mounted"
-					device_enabled[$a]="$DRIVE_ENABLED"
-					device_smb_export[$a]="$SMB_EXPORT"
-					device_smb_sec[$a]="$SMB_SEC"
+					device_enabled[$a]="$enabled"
+					device_format[$a]="$filesystem"
+					device_label[$a]="$label"
+					device_size[$a]="$size"
+					device_smb_export[$a]="$old_smb_export"
+					device_smb_sec[$a]="$old_smb_sec"
 					
 					let a=a+1
 					
@@ -477,7 +494,7 @@ esac
 <![CDATA[
 Menu="OtherSettings"
 Icon="drive_mount.png"
-Version="0.2"
+Version="0.5"
 Author="Benjamin Waller"
 Type="php"
 Title="Mount Drives"
@@ -495,232 +512,291 @@ Title="Mount Drives"
 <?PHP
 shell_exec("/boot/config/plugins/drive_mount/drive_mount.sh update");
 $drive_mount_cfg = parse_ini_file( "/boot/config/plugins/drive_mount/drive_mount.cfg",TRUE);
+?>
+<style type="text/css" media="screen">
+.disk_add, .disk_sel {
+	display: inline-block;
+	padding: 8px;
+	margin: 0 4px 15px 4px;
+}
+.disk_add img, .disk_sel img {
+	margin-bottom: 5px;
+}
+.disk_sel a {
+	font-weight: bold;
+}
+.disk_sel {
+	background: #D8DFEE;
+	border-radius: 5px;
+}
+img.off {
+	opacity: 0.5;
+	filter:alpha(opacity=50);
+}
+</style>
+<link type="text/css" rel="stylesheet" href="<?=$sf?>/style/jquery.stylesidebar.css">
+<script type="text/javascript" src="<?=$sf?>/scripts/jquery.stylesidebar.js"></script>
+
+<?PHP
+foreach ($drive_mount_cfg as $drive_uuid => $drive_values)
+{
+  if ($drive_values['DRIVE_NAME']) {
+    if (!isset($uuid)) $uuid = $drive_uuid;
+	$mounted = ($drive_values['DRIVE_MOUNTED']=="enable")?"on":"off";
+    echo "<div class='".($uuid==$drive_uuid ? "disk_sel" : "disk_add")."'>";
+    echo "<center><a href='/$path?uuid=$drive_uuid'><img src='/plugins/drive_mount/drive_mount.png' id='".$drive_values['DRIVE_NAME']."' class='$mounted'><br>".$drive_values['DRIVE_NAME']."</a></center></div>";
+  }
+}
+echo "<div class='".($uuid=="SETTINGS" ? "disk_sel" : "disk_add")."'>";
+echo "<center><a href='/$path?uuid=SETTINGS'><img src='/plugins/simpleFeatures/images/settings.png' id='SETTINGS' class='on'><br>Settings</a></center></div>";
+$host = substr($drive_mount_cfg[$uuid]['DRIVE_NAME'],0,-1);
 
 ?>
-<script type="text/javascript">
-function checkMOUNTED(form,mounted)
-{
-   if (mounted == "enable") {
-      form.arg3.readOnly = true;
-	  //form.smb_select.disabled = true;
-   }
-   else {
-      form.arg3.readOnly = (form.arg1.value == "enable");
-	  //form.smb_select.disabled = (form.arg1.value == "enable");
-   }
-}
+<br>
+<?PHP
+if ($uuid == "SETTINGS") {
+?>
+Soon:<br>
+install ntfs-3g<br>
+settings to remember disks and auto mount<br>
 
-/*function checkSMB(form)
-{
-	form.arg4.value = form.smb_select.options[form.smb_select.selectedIndex].value;
+<?PHP
+} else {
+?>
+
+<div id="menuDiv" style="overflow:hidden">
+<ul id="SystemProfilerStyleSidebar">
+<li class="ajaxlink"><a href="/plugins/drive_mount/mount.php?cmd=IDENTITY&uuid=<?=$uuid?>">Partition identity</a></li>
+<li class="ajaxlink"><a href="/plugins/drive_mount/mount.php?cmd=SETTINGS&uuid=<?=$uuid?>" id="mount_settings">Mount settings</a></li>
+<li class="ajaxlink"><a href="/plugins/drive_mount/mount.php?cmd=SHARE&uuid=<?=$uuid?>">Share settings</a></li>
+<?PHP
+// only display disk health links, if disk health simple features is installed
+if (file_exists("/usr/local/emhttp/plugins/simpleFeatures/include/SmartInfo.php")) {
+?>
+<li class="ajaxlink"><a href="<?=$sf?>/include/SmartInfo.php?cmd=IDENTITY&device=<?=$host?>">Disk identity</a></li>
+<li class="ajaxlink"><a href="<?=$sf?>/include/SmartInfo.php?cmd=ATTRIBUTES&device=<?=$host?>">Disk attributes</a></li>
+<li class="ajaxlink"><a href="<?=$sf?>/include/SmartInfo.php?cmd=CAPABILITIES&device=<?=$host?>">Disk capabilities</a></li>
+<li class="ajaxlink"><a href="<?=$sf?>/include/SmartInfo.php?cmd=TESTLOG&device=<?=$host?>">Disk self-test log</a></li>
+<li class="ajaxlink"><a href="<?=$sf?>/include/SmartInfo.php?cmd=ERRORLOG&device=<?=$host?>">Disk error log</a></li>
+<li class="ajaxlink"><a href="<?=$sf?>/include/SmartInfo.php?cmd=SELFTEST&device=<?=$host?>">Run disk self-test</a></li>
+<?PHP
 }
-*/
+?>
+</ul>
+<div id="mainContent"><!-- content  --></div>
+</div>
+<script type="text/javascript">
+
+$(document).ready(function(){
+  $(function(){$('li').StyleSidebar({displayDivId:'mainContent'});});
+});
 </script>
 
 <?PHP
-$total_drives = count($drive_mount_cfg);
-$i++;
-foreach ($drive_mount_cfg as $drive_uuid => $drive_values)
-{
-	
+}
 ?>
-   <form name="drive_mount_settings_<?=$i?>" method="POST" action="/update.htm" target="progressFrame">
-      <input type="hidden" name="cmd" value="/boot/config/plugins/drive_mount/drive_mount.sh">
-	  <input type="hidden" name="arg2" value="<?=$drive_uuid?>">
-      <table class="settings">
-         <tr>
-         <td>Drive:</td>
-         <td><?=$drive_values['DRIVE_ID']?> (<?=$drive_values['DRIVE_NAME']?>)</td>
-         </tr>
-		 <tr>
-         <td>Enable Drive:</td>
-         <td><select name="arg1" size="1"  onChange="checkMOUNTED(this.form,'<?=$drive_values['DRIVE_MOUNTED']?>');">
-            <?=mk_option($drive_values['DRIVE_ENABLED'], "disable", "No");?>
-            <?=mk_option($drive_values['DRIVE_ENABLED'], "enable", "Yes");?>
-            </select></td>
-         </tr>
-         <tr>
-         <td>Drive name:</td>
-         <td><input type="text" name="arg3" maxlength="100" value="<?=$drive_values['DRIVE_MOUNT'];?>"></td>
-         </tr>
-         <!--<tr>
-         <td>SMB share:</td>
-         <td><select name="smb_select" size="1" onChange="checkSMB(this.form);">
-            <?=mk_option($drive_values['SMB_SHARE'], "disable", "No");?>
-            <?=mk_option($drive_values['SMB_SHARE'], "public", "Public");?>
-			<?=mk_option($drive_values['SMB_SHARE'], "secure", "Secure");?>
-			<?=mk_option($drive_values['SMB_SHARE'], "private", "Private");?>
-			</select></td>
-			<input type="hidden" name="arg4" value="<?=$drive_values['SMB_SHARE'];?>">
-         </tr>-->
-		 <tr>
-         <td>
-         </td>
-         <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
-         </tr>
-      </table>
-   </form><br>
 
-   <? if ($var['shareSMBEnabled']=="no"): ?>
-         <p class="notice">SMB is not enabled</p>
-   <?    return; ?>
-   <? endif; ?>
-	
-   <? if ($var['shareSMBEnabled']=="ads"): ?>
-	
-         <form method="POST" name="drive_mount_smb_settings_<?=$i?>" action="/update.htm" target="progressFrame">
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/drive_mount/mount.php">
+<INLINE>
+<![CDATA[
+<?PHP
+parse_str($argv[1],$_GET);
+$drive_mount_cfg = parse_ini_file( "/boot/config/plugins/drive_mount/drive_mount.cfg",TRUE);
+$drive_uuid = $_GET['uuid'];
+$drive_values = $drive_mount_cfg[$drive_uuid];
+
+
+switch ($_GET['cmd']):
+case "IDENTITY":
+
+function formatBytes($bytes, $precision = 2) { 
+    $units = array('B', 'KB', 'MB', 'GB', 'TB'); 
+
+    $bytes = max($bytes, 0); 
+    $pow = floor(($bytes ? log($bytes) : 0) / log(1024)); 
+    $pow = min($pow, count($units) - 1); 
+
+    // Uncomment one of the following alternatives
+    //$bytes /= pow(1024, $pow);
+    $bytes /= (1 << (10 * $pow)); 
+
+    return round($bytes, $precision) . ' ' . $units[$pow]; 
+} 
+
+
+?>
+	<div class='label'><span class='left'>Partition identity</span></div>
+	<table class='list'>
+		<tr>
+			<td width="100px">UUID</td>
+			<td><?=$drive_uuid?></td>
+		</tr>
+		<tr>
+			<td width="100px">ID</td>
+			<td><?=$drive_values['DRIVE_NAME']?></td>
+		</tr>
+		<tr>
+			<td width="100px">Label</td>
+			<td><?=$drive_values['DRIVE_LABEL']?></td>
+		</tr>
+		<tr>
+			<td width="100px">Size</td>
+			<td><?=formatBytes($drive_values['DRIVE_SIZE'])?></td>
+		</tr>
+		<tr>
+			<td width="100px">Format</td>
+			<td><?=$drive_values['DRIVE_FORMAT']?></td>
+		</tr>
+		<tr>
+			<td width="100px">Mounted</td>
+			<td><?=($drive_values['DRIVE_MOUNTED']!="disable")?"Yes":"No"?></td>
+		</tr>
+		<tr>
+			<td width="100px">Shared</td>
+			<td><?=($drive_values['SMB_EXPORT']!="-")?"Yes":"No"?></td>
+		</tr>
+	</table>
+	<?PHP
+	break;
+case "SETTINGS":
+?>
+	<div class='label'><span class='left'>Mount settings</span></div>
+	<table class='settings'>
+		<form name="drive_mount_settings" method="POST" action="/update.htm" target="progressFrame">
 			<input type="hidden" name="cmd" value="/boot/config/plugins/drive_mount/drive_mount.sh">
-			<input type="hidden" name="arg1" value="smb_config">
 			<input type="hidden" name="arg2" value="<?=$drive_uuid?>">
-			<table class="settings">
-               <tr>
-               <td>Export:</td>
-               <td><select name="arg3" size="1">
-               <?=mk_option($drive_values['SMB_EXPORT'], "-", "No");?>
-               <?=mk_option($drive_values['SMB_EXPORT'], "e", "Yes");?>
-               <?=mk_option($drive_values['SMB_EXPORT'], "eh", "Yes (hidden)");?>
-               </select></td>
-               </tr>
-               <tr>
-               <td></td>
-               <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
-               </tr>
-		    </table>
-         </form>
-   
-   <?    return; ?>
-   <? endif; ?>
-
-      <form method="POST" name="drive_mount_smb_settings_<?=$i?>" action="/update.htm" target="progressFrame">
-		 <input type="hidden" name="cmd" value="/boot/config/plugins/drive_mount/drive_mount.sh">
-		 <input type="hidden" name="arg1" value="smb_config">
-		 <input type="hidden" name="arg2" value="<?=$drive_uuid?>">
-         <table class="settings">
-            <tr>
-            <td>Export:</td>
-            <td><select name="arg3" size="1">
-            <?=mk_option($drive_values['SMB_EXPORT'], "-", "No");?>
-            <?=mk_option($drive_values['SMB_EXPORT'], "e", "Yes");?>
-            <?=mk_option($drive_values['SMB_EXPORT'], "eh", "Yes (hidden)", "disabled");?>
-            </select></td>
-            </tr>
-            <tr>
-            <td>Security:</td>
-            <td><select name="arg4" size="1">
-            <?=mk_option($drive_values['SMB_SEC'], "public", "Public");?>
-            <?=mk_option($drive_values['SMB_SEC'], "secure", "Secure", "disabled");?>
-   <?       if ($var['featureSecurityUser']): ?>
-               <?=mk_option($drive_values['SMB_SEC'], "private", "Private", "disabled");?>
-   <?       else: ?>
-               <?=mk_option($drive_values['SMB_SEC'], "private", "Private", "disabled");?>
-   <?       endif; ?>
-            </select></td>
-            </tr>
-            <tr>
-            <td></td>
-            <td><input type="submit" name="runCmd" value="Apply"><button type="button" onClick="done();">Done</button></td>
-            </tr>
-         </table>
-      </form>
-   <!--  
-   <? if ($drive_values['SMB_SEC']=="secure"): ?>
-         <form method="POST" action="/update.htm" target="progressFrame">
-            <input type="hidden" name="shareName" value="<?=$name;?>">
-            <table class="access_list">
-   	    <tr>
-   	    <td>User</td>
-   	    <td>Access</td>
-   	    </tr>
-            
-   <?          $write_list = explode(",", $sec[$name]['writeList']); ?>
-            
-   <?          foreach ($users as $user): ?>
-   <?             if ($user['name'] == "root"): ?>
-                     <input type="hidden" name="userAccess.<?=$user['idx'];?>" value="no-access">
-   <?                continue; ?>
-   <?             endif; ?>
-
-   <?             if (in_array( $user['name'], $write_list)): ?>
-   <?                $userAccess = "read-write"; ?>
-   <?             else: ?>
-   <?                $userAccess = "read-only"; ?>
-   <?             endif; ?>
-               
-                  <tr>
-                  <td><?=$user['name'];?></td>
-                  <td><select name="userAccess.<?=$user['idx'];?>" size="1">
-                  <?=mk_option($userAccess, "read-write", "Read/Write");?>
-                  <?=mk_option($userAccess, "read-only", "Read-only");?>
-                  </select></td>
-                  </tr>
-   <?          endforeach; ?>
-            
-               <tr>
-               <td></td>
-               <td><input type="submit" name="changeShareAccess" value="Apply"><button type="button" onClick="done();">Done</button></td>
-               </tr>
-            </table>
-         </form>
-   <? endif; ?>
- 
-   <? if ($drive_values['SMB_SEC']=="private"): ?>
-         <form method="POST" action="/update.htm" target="progressFrame">
-            <input type="hidden" name="shareName" value="<?=$name;?>">
-            <table class="access_list">
-   	    <tr>
-   	    <td>User</td>
-   	    <td>Access</td>
-   	    </tr>
-
-   <?          $read_list = explode(",", $sec[$name]['readList']); ?>
-   <?          $write_list = explode(",", $sec[$name]['writeList']); ?>
-            
-   <?          foreach ($users as $user): ?>
-   <?             if ($user['name'] == "root"): ?>
-                     <input type="hidden" name="userAccess.<?=$user['idx'];?>" value="no-access">
-   <?                continue; ?>
-   <?             endif; ?>
-
-   <?             if (in_array( $user['name'], $write_list)): ?>
-   <?                $userAccess = "read-write"; ?>
-   <?             elseif (in_array( $user['name'], $read_list)): ?>
-   <?                $userAccess = "read-only"; ?>
-   <?             else: ?>
-   <?                $userAccess = "no-access"; ?>
-   <?             endif; ?>
-               
-                  <tr>
-                  <td><?=$user['name'];?></td>
-                  <td><select name="userAccess.<?=$user['idx'];?>" size="1">
-                  <?=mk_option($userAccess, "read-write", "Read/Write");?>
-                  <?=mk_option($userAccess, "read-only", "Read-only");?>
-                  <?=mk_option($userAccess, "no-access", "No Access");?>
-                  </select></td>
-                  </tr>
-   <?          endforeach; ?>
-            
-               <tr>
-               <td></td>
-               <td><input type="submit" name="changeShareAccess" value="Apply"><button type="button" onClick="done();">Done</button></td>
-               </tr>
-            </table>
-         </form>
-   <? endif; ?>
-   -->
-
+			<tr>
+				<td>Enable Drive:</td>
+				<td><select name="arg1" size="1"  onChange="checkMOUNTED(this.form,'<?=$drive_values['DRIVE_MOUNTED']?>');">
+					<option value="disable"<?=($drive_values['DRIVE_ENABLED']=="disable")?" selected":"" ?>>No</option>
+					<option value="enable"<?=($drive_values['DRIVE_ENABLED']=="enable")?" selected":"" ?>>Yes</option>
+				</select></td>
+			</tr>
+			<tr>
+				<td>Drive name:</td>
+				<td><input type="text" name="arg3" maxlength="100" value="<?=$drive_values['DRIVE_MOUNT'];?>"></td>
+			</tr>
+			<tr>
+				<td>
+				</td>
+				<td><button type="button" id="mount_submit">Apply</button></td>
+			</tr>
+		</form>
+	</table>
 	<script type="text/javascript">
-		checkMOUNTED(document.drive_mount_settings_<?=$i?>,'<?=$drive_values['DRIVE_MOUNTED']?>');
+		function checkMOUNTED(form,mounted)
+		{
+			if (mounted == "enable") {
+				form.arg3.readOnly = true;
+			}
+			else {
+				form.arg3.readOnly = (form.arg1.value == "enable");
+			}
+		}
+		
+		checkMOUNTED(document.drive_mount_settings,'<?=$drive_values['DRIVE_MOUNTED']?>');
+		
+		$(document).ready(function(){
+			$("button[id=mount_submit]").click(function(){
+				$(this).attr('disabled',true);
+				$.ajax({
+					url:'/plugins/drive_mount/mount.php',
+					data:{
+						cmd: "SETMOUNT",
+						set: $('select[name=arg1]').val(),
+						uuid: $('input[name=arg2]').val(),
+						name: $('input[name=arg3]').val()
+					}
+				}).done(function(){
+					$("button[id=mount_submit]").attr('disabled',false);
+					$("a[id=mount_settings]").click();
+				});
+			});
+		});
+		
 	</script>
 
 <?PHP
-if ($i < $total_drives) {
-	echo "<hr><br><br>";
-}
-$i++
+	break;
+case "SHARE":
+	?>
+	<div class='label'><span class='left'>Share settings: <?=$drive_values['DRIVE_MOUNT']?></span></div>
+	<table class='settings'>
+		<form method="POST" name="drive_mount_smb_settings" action="/update.htm" target="progressFrame">
+			<input type="hidden" name="cmd" value="/boot/config/plugins/drive_mount/drive_mount.sh">
+			<input type="hidden" name="arg1" value="smb_config">
+			<input type="hidden" name="arg2" value="<?=$drive_uuid?>">
+			<tr><td>NOTE:</td><td>sharing the mounted drive is beta. currently it works with reiserfs formated drives. fat32 doesn't work. ntfs is unknown</td></tr>
+			<tr>
+				<td>Export:</td>
+				<td><select name="arg3" size="1">
+					<option value="-"<?=($drive_values['SMB_EXPORT']=="-")?" selected":"" ?>>No</option>
+					<option value="e"<?=($drive_values['SMB_EXPORT']=="e")?" selected":"" ?>>Yes</option>
+					<option value="eh"<?=($drive_values['SMB_EXPORT']=="eh")?" selected":"" ?>>Yes (hidden)</option>
+				</select></td>
+			</tr>
+			<tr>
+				<td>Security:</td>
+				<td><select name="arg4" size="1">
+					<option value="public"<?=($drive_values['SMB_SEC']=="public")?" selected":"" ?>>Public</option>
+					<option value="secure"<?=($drive_values['SMB_SEC']=="secure")?" selected":"" ?> disabled>Secure</option>
+					<?       if ($var['featureSecurityUser']): ?>
+					<option value="private"<?=($drive_values['SMB_SEC']=="private")?" selected":"" ?> disabled>Private</option>
+					<?       else: ?>
+					<option value="private"<?=($drive_values['SMB_SEC']=="private")?" selected":"" ?> disabled>Private</option>
+					<?       endif; ?>
+				</select></td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><button type="button" id="smb_submit">Apply</button></td>
+			</tr>
+		</form>
+	</table>
+	<script type="text/javascript" charset="utf-8">
+	$(document).ready(function(){
+		$("button[id=smb_submit]").click(function(){
+			$(this).attr('disabled',true);
+			$.ajax({
+				url:'/plugins/drive_mount/mount.php',
+				data:{
+					cmd: "SETSHARE",
+					uuid: $('input[name=arg2]').val(),
+					export: $('select[name=arg3]').val(),
+					security: $('select[name=arg4]').val()
+				}
+			}).done(function(){
+				$("button[id=smb_submit]").attr('disabled',false);
+			});
+		});
+	});
+	</script>
+	<?PHP
+	break;
+case "SETMOUNT":
+	$uuid = $_GET['uuid'];
+	$set = $_GET['set'];
+	$name = $_GET['name'];
+	
+	shell_exec("/boot/config/plugins/drive_mount/drive_mount.sh $set $uuid $name");
+	
+	shell_exec("/boot/config/plugins/drive_mount/drive_mount.sh update");
+	break;
+case "SETSHARE":
+	$uuid = $_GET['uuid'];
+	$export = $_GET['export'];
+	$security = $_GET['security'];
+	
+	shell_exec("/boot/config/plugins/drive_mount/drive_mount.sh smb_config $uuid $export $security");
+	
+	shell_exec("/boot/config/plugins/drive_mount/drive_mount.sh update");
+	break;
+endswitch;
 
-?>
-<?PHP
-}
 ?>
 
 ]]>
