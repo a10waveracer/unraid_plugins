@@ -7,7 +7,7 @@ This plugin is a work in progress. So far, the plugin will only install mkvtooln
 ###inadyn
 This plugin will set dyndns services on your unraid system. Sadly it's not very stable and it becomes unresponsive after about a week. I will have to look into it.
 
-###sf_drive_mount
+###drive_mount_sf
 This plugin will let you mount a disk, which is not part of your array. In the future, there will be more features like adding shares automaticaly after mounting.
 The current version requires Simple Features (see below) for the UI.
 
