@@ -6,6 +6,11 @@ This UnRaid plugin will mount any drive, which is not part of the array
 at a configureable mount point
 -->
 
+<FILE Name="/boot/packages/inotify-tools-3.14-i486-1.txz" Run="upgradepkg --install-new">
+<URL>http://slackware.cs.utah.edu/pub/slackware/slackware-14.0/slackware/a/inotify-tools-3.14-i486-1.txz</URL>
+<MD5>5aa51a1d2c56cab72c582c07ff907f9d</MD5>
+</FILE>
+
 <FILE Name="/boot/config/plugins/drive_mount/drive_mount.png">
 <URL>--no-check-certificate https://github.com/Benni-chan/unraid_plugins/raw/master/support_files/drive_mount.png</URL>
 </FILE>
