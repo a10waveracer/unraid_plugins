@@ -15,6 +15,7 @@ This UnRaid plugin will install and update the plex media server addon.
 <![CDATA[
 [ -d /usr/local/emhttp/plugins/plexupdater ] && rm -f -R /usr/local/emhttp/plugins/plexupdater
 [ -f /usr/local/sbin/plexupdater ] && rm -f /usr/local/sbin/plexupdater
+[ -f /etc/cron.daily/plexupdater ] && rm -f /etc/cron.daily/plexupdater
 [ -f /boot/config/plugins/plexupdater/plgver.txt ] && rm -f /boot/config/plugins/plexupdater/plgver.txt
 rm /tmp/plexupdater-cleanup
 ]]>
@@ -367,7 +368,7 @@ checkPLEX_PLEXPASS(document.plex_settings);
 </INLINE>
 </FILE>
 
-<FILE Name="/etc/cron.daily/plexupdater.sh" Mode="0777">
+<FILE Name="/etc/cron.daily/plexupdater" Mode="0777">
 <INLINE>
 <![CDATA[
 #!/bin/bash
