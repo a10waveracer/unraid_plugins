@@ -35,7 +35,7 @@ PASSWORD=""
 <FILE Name="/boot/config/plugins/plexupdater/plgver.txt">
 <INLINE>
 <![CDATA[
-1.4
+1.5
 ]]>
 </INLINE>
 </FILE>
@@ -175,6 +175,18 @@ plexupdater_downgradeplg()
 	fi
 }
 
+plexupdater_checkupdate()
+{
+	plexupdater_check_version
+	
+	#check only, if simpleFeatures is installed
+	if [ -e /usr/local/emhttp/plugins/simpleFeatures/include/Notify.sh ]; then
+		if [[ `compareVersions $CURRENTSHORTVERSION $NEWSHORTVERSION` < 0 ]]; then
+			/usr/local/emhttp/plugins/simpleFeatures/include/Notify.sh -plugin "Plex Updater" -subject "new update found" -description "Plex Media Server: $NEWSHORTVERSION" -importance "default"
+		fi
+	fi
+}
+
 
 # read our configuration
 source /boot/config/plugins/plexupdater/settings.ini
@@ -198,8 +210,11 @@ case "$1" in
 	'downgradeplg')
 		plexupdater_downgradeplg
 	;;
+	'checkupdate')
+		plexupdater_checkupdate
+	;;
 	*)
-		echo "usage $0 install|update|version|updateplg|downgradeplg"
+		echo "usage $0 install|update|version|updateplg|downgradeplg|checkupdate"
 esac
 
 ]]>
@@ -211,7 +226,7 @@ esac
 <![CDATA[
 Menu="NetworkServices"
 Icon="plexupdater.png"
-Version="1.4"
+Version="1.5"
 Author="Benni-chan"
 Type="php"
 Title="PMS Updater"
@@ -351,6 +366,16 @@ checkPLEX_PLEXPASS(document.plex_settings);
 ]]>
 </INLINE>
 </FILE>
+
+<FILE Name="/etc/cron.daily/plexupdater.sh" Mode="0777">
+<INLINE>
+<![CDATA[
+#!/bin/bash
+/usr/local/sbin/plexupdater checkupdate
+]]>
+</INLINE>
+</FILE>
+
 
 <FILE Name="/var/log/plugins/plexupdater">
 <INLINE>
