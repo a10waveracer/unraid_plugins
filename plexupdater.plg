@@ -36,7 +36,7 @@ PASSWORD=""
 <FILE Name="/boot/config/plugins/plexupdater/plgver.txt">
 <INLINE>
 <![CDATA[
-1.5
+1.6
 ]]>
 </INLINE>
 </FILE>
@@ -227,7 +227,7 @@ esac
 <![CDATA[
 Menu="NetworkServices"
 Icon="plexupdater.png"
-Version="1.5"
+Version="1.6"
 Author="Benni-chan"
 Type="php"
 Title="PMS Updater"
