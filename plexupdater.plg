@@ -95,8 +95,8 @@ plexupdater_check_version()
 	#get plexpass version, if plexpass is activated
 	if [[ "$PLEXPASS" == "true" && "$USERNAME" != "" && "$PASSWORD" != "" ]]; then
 		#preview version
-		PLEXPASSURL=`wget -q -O - "http://$USERNAME:$PASSWORD@plexapp.com/plexpass/plex-media-server.php?version=" | grep -o '<a id=['"'"'"][^"'"'"']*['"'"'"] href=['"'"'"][^"'"'"']*unRAID.txz['"'"'"]' | sed -e 's/^<a id=['"'"'"][^"'"'"']*['"'"'"] href=["'"'"']//' -e 's/["'"'"']$//'`
-		#PLEXPASSURL=`wget -q -O - "http://$USERNAME:$PASSWORD@plexapp.com/plexpass/plex-media-server.php" | grep -o '<a id=['"'"'"][^"'"'"']*['"'"'"] href=['"'"'"][^"'"'"']*unRAID.txz['"'"'"]' | sed -e 's/^<a id=['"'"'"][^"'"'"']*['"'"'"] href=["'"'"']//' -e 's/["'"'"']$//'`
+		#PLEXPASSURL=`wget -q -O - "http://$USERNAME:$PASSWORD@plexapp.com/plexpass/plex-media-server.php?version=" | grep -o '<a id=['"'"'"][^"'"'"']*['"'"'"] href=['"'"'"][^"'"'"']*unRAID.txz['"'"'"]' | sed -e 's/^<a id=['"'"'"][^"'"'"']*['"'"'"] href=["'"'"']//' -e 's/["'"'"']$//'`
+		PLEXPASSURL=`wget -q -O - "http://$USERNAME:$PASSWORD@plexapp.com/plexpass/plex-media-server.php" | grep -o '<a id=['"'"'"][^"'"'"']*['"'"'"] href=['"'"'"][^"'"'"']*unRAID.txz['"'"'"]' | sed -e 's/^<a id=['"'"'"][^"'"'"']*['"'"'"] href=["'"'"']//' -e 's/["'"'"']$//'`
 		
 		PLEXPASSVERSION=`echo $PLEXPASSURL | sed -e 's/^[0-9A-Za-z./:-]*PlexMediaServer-//' -e 's/-unRAID.txz//'`
 		PLEXPASSSHORTVERSION=`echo $PLEXPASSVERSION | sed -e 's/-[0-9A-Za-z]*//'`
