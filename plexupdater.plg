@@ -36,7 +36,7 @@ PASSWORD=""
 <FILE Name="/boot/config/plugins/plexupdater/plgver.txt">
 <INLINE>
 <![CDATA[
-1.9
+1.8
 ]]>
 </INLINE>
 </FILE>
@@ -51,15 +51,11 @@ write_config()
 {
 	echo "# Plexupdater configuration:" > /boot/config/plugins/plexupdater/settings.ini
 	echo "PLEXPASS=\"$PLEXPASS\"" >> /boot/config/plugins/plexupdater/settings.ini
-	echo "USERNAME=\"$USERNAME\"" >> /boot/config/plugins/plexupdater/settings.ini
-	echo "PASSWORD=\"$PASSWORD\"" >> /boot/config/plugins/plexupdater/settings.ini
 }
 
 plexupdater_config()
 {
 	PLEXPASS="$1"
-	USERNAME="$2"
-	PASSWORD="$3"
 	write_config
 }
 
@@ -93,21 +89,10 @@ plexupdater_check_version()
 	NEWSHORTVERSION=$STABLESHORTVERSION
 	
 	#get plexpass version, if plexpass is activated
-	if [[ "$PLEXPASS" == "true" && "$USERNAME" != "" && "$PASSWORD" != "" ]]; then
+	if [[ "$PLEXPASS" == "true" ]]; then
 		#preview version
-        #get token and session cookie
-        COOKIEPATH=/boot/config/plugins/plexupdater/cookies.txt
-        PLEXPASSTOKEN=($(wget -q --no-check-certificate --keep-session-cookies --save-cookies $COOKIEPATH -O - "https://ple$
-        for (( i = 0; i < ${#SI[*]}; i += 2)); do
-            if [[ ${PLEXPASSTOKEN[i]} == *token* ]]; then
-                PLEXPASSPARAMS="$PM${SI[i]}=${SI[i+1]}&"
-            fi
-        done
-        PLEXPASSPARAMS="${PLEXPASSPARAMS}user[login]=${USERNAME}&user[password]=${PASSWORD}"
-        #do login and save cookies
-        PLEXPASSSIGNIN=`wget -q --no-check-certificate --keep-session-cookies --save-cookies $COOKIEPATH --load-cookies $CO$
-        PLEXPASSURL=`wget -q --no-check-certificate --load-cookies $COOKIEPATH -O - "https://plex.tv/downloads?channel=plex$
-
+		PLEXPASSURL=`wget -q --no-check-certificate -O - "https://plex.tv/downloads?channel=plexpass" | grep -o '[^"'"'"']*unRAID.txz'`
+		
 		PLEXPASSVERSION=`echo $PLEXPASSURL | sed -e 's/^[0-9A-Za-z./:-]*PlexMediaServer-//' -e 's/-unRAID.txz//'`
 		PLEXPASSSHORTVERSION=`echo $PLEXPASSVERSION | sed -e 's/-[0-9A-Za-z]*//'`
 		
@@ -238,7 +223,7 @@ esac
 <![CDATA[
 Menu="NetworkServices"
 Icon="plexupdater.png"
-Version="1.9"
+Version="1.8"
 Author="Benni-chan"
 Type="php"
 Title="PMS Updater"
@@ -340,14 +325,6 @@ $plex_plgver = shell_exec ( "cat /boot/config/plugins/plexupdater/plgver.txt" );
 	            <?=mk_option($plex_cfg['PLEXPASS'], "true", "Yes");?>
 	            </select></td>
 	         </tr>
-	         <tr id="username_row">
-	         <td>Username:</td>
-	         <td><input type="text" name="arg2" maxlength="60" value="<?=$plex_cfg['USERNAME'];?>"></td>
-	         </tr>
-	         <tr id="password_row">
-	         <td>Password:</td>
-	         <td><input type="password" name="arg3" maxlength="60" value="<?=$plex_cfg['PASSWORD'];?>"></td>
-	         </tr>
 		 </table>
 		 <div align="center">
 		 	<hr size="3" align="center" width="75%" color="grey" style="margin-top:20px;margin-bottom:18px" >
@@ -357,23 +334,6 @@ $plex_plgver = shell_exec ( "cat /boot/config/plugins/plexupdater/plgver.txt" );
 	</form>
 	<br />
 </div>
-
-<script type="text/javascript">
-function checkPLEX_PLEXPASS(form)
-{
-	if (form.arg1.selectedIndex < 1 )
-		{
-			document.getElementById("username_row").style.display = 'none';
-			document.getElementById("password_row").style.display = 'none';
-		}
-		else
-		{
-			document.getElementById("username_row").style.display = '';
-			document.getElementById("password_row").style.display = '';
-		}
-}
-checkPLEX_PLEXPASS(document.plex_settings);
-</script>
 
 ]]>
 </INLINE>
