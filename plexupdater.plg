@@ -36,7 +36,7 @@ PASSWORD=""
 <FILE Name="/boot/config/plugins/plexupdater/plgver.txt">
 <INLINE>
 <![CDATA[
-1.9
+1.9.1
 ]]>
 </INLINE>
 </FILE>
@@ -80,6 +80,22 @@ compareVersions()
 	echo  '0'
 }
 
+rawurlencode() {
+  local string="${1}"
+  local strlen=${#string}
+  local encoded=""
+
+  for (( pos=0 ; pos<strlen ; pos++ )); do
+     c=${string:$pos:1}
+     case "$c" in
+        [-_.~a-zA-Z0-9] ) o="${c}" ;;
+        * )               printf -v o '%%%02x' "'$c"
+     esac
+     encoded+="${o}"
+  done
+  echo "${encoded}"
+}
+
 plexupdater_check_version()
 {
 	#get stable version
@@ -103,7 +119,8 @@ plexupdater_check_version()
                                 PLEXPASSPARAMS="$PM${SI[i]}=${SI[i+1]}&"
                         fi
                 done
-                PLEXPASSPARAMS="${PLEXPASSPARAMS}user[login]=${USERNAME}&user[password]=${PASSWORD}"
+                PLEXPASSPARAMS="${PLEXPASSPARAMS}user[login]=$(rawurlencode ${USERNAME})&user[password]=$(rawurlencode ${PASSWORD})"
+				echo $PLEXPASSPARAMS
                 #do login and save cookies
                 PLEXPASSSIGNIN=`wget -q --no-check-certificate --keep-session-cookies --save-cookies $COOKIEPATH --load-cookies $COOKIEPATH --post-data $PLEXPASSPARAMS -O - "https://plex.tv/users/sign_in"`
                 PLEXPASSURL=`wget -q --no-check-certificate --load-cookies $COOKIEPATH -O - "https://plex.tv/downloads?channel=plexpass" | grep -o '[^"'"'"']*unRAID.txz'`
@@ -240,7 +257,7 @@ esac
 <![CDATA[
 Menu="NetworkServices"
 Icon="plexupdater.png"
-Version="1.9"
+Version="1.9.1"
 Author="Benni-chan"
 Type="php"
 Title="PMS Updater"
