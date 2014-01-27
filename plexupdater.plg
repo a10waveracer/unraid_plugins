@@ -36,7 +36,7 @@ PASSWORD=""
 <FILE Name="/boot/config/plugins/plexupdater/plgver.txt">
 <INLINE>
 <![CDATA[
-1.9.1
+1.9.2
 ]]>
 </INLINE>
 </FILE>
@@ -119,8 +119,9 @@ plexupdater_check_version()
                                 PLEXPASSPARAMS="$PM${SI[i]}=${SI[i+1]}&"
                         fi
                 done
-                PLEXPASSPARAMS="${PLEXPASSPARAMS}user[login]=$(rawurlencode ${USERNAME})&user[password]=$(rawurlencode ${PASSWORD})"
-		
+                #PLEXPASSPARAMS="${PLEXPASSPARAMS}user[login]=$(rawurlencode ${USERNAME})&user[password]=$(rawurlencode ${PASSWORD})"
+				PLEXPASSPARAMS="${PLEXPASSPARAMS}user[login]=${USERNAME}&user[password]=${PASSWORD}"
+				
                 #do login and save cookies
                 PLEXPASSSIGNIN=`wget -q --no-check-certificate --keep-session-cookies --save-cookies $COOKIEPATH --load-cookies $COOKIEPATH --post-data $PLEXPASSPARAMS -O - "https://plex.tv/users/sign_in"`
                 PLEXPASSURL=`wget -q --no-check-certificate --load-cookies $COOKIEPATH -O - "https://plex.tv/downloads?channel=plexpass" | grep -o '[^"'"'"']*unRAID.txz'`
@@ -257,7 +258,7 @@ esac
 <![CDATA[
 Menu="NetworkServices"
 Icon="plexupdater.png"
-Version="1.9.1"
+Version="1.9.2"
 Author="Benni-chan"
 Type="php"
 Title="PMS Updater"
@@ -349,7 +350,7 @@ $plex_plgver = shell_exec ( "cat /boot/config/plugins/plexupdater/plgver.txt" );
 	<div id="title">
 		<span class="left">Configuration:</span>
 	</div>
-	<form name="plexupdater_settings" method="POST" action="/update.htm" target="progressFrame">
+	<form name="plexupdater_settings" method="POST" action="/update.htm" target="progressFrame" onsubmit="encodeInput(this)">
 		<input type="hidden" name="cmd" value="/usr/local/sbin/plexupdater config">
 	      <table class="settings">
 	         <tr>
@@ -361,11 +362,11 @@ $plex_plgver = shell_exec ( "cat /boot/config/plugins/plexupdater/plgver.txt" );
 	         </tr>
 	         <tr id="username_row">
 	         <td>Username:</td>
-	         <td><input type="text" name="arg2" maxlength="60" value="<?=$plex_cfg['USERNAME'];?>"></td>
+	         <td><input type="text" name="arg2" maxlength="60" value="<?=urldecode($plex_cfg['USERNAME']);?>"></td>
 	         </tr>
 	         <tr id="password_row">
 	         <td>Password:</td>
-	         <td><input type="password" name="arg3" maxlength="60" value="<?=$plex_cfg['PASSWORD'];?>"></td>
+	         <td><input type="password" name="arg3" maxlength="60" value="<?=urldecode($plex_cfg['PASSWORD']);?>"></td>
 	         </tr>
 		 </table>
 		 <div align="center">
@@ -392,6 +393,13 @@ function checkPLEX_PLEXPASS(form)
 		}
 }
 checkPLEX_PLEXPASS(document.plex_settings);
+
+function encodeInput(form)
+{
+	// Encode the value of the query
+	form.elements['arg2'].value = encodeURIComponent(form.elements['arg2'].value);
+	form.elements['arg3'].value = encodeURIComponent(form.elements['arg3'].value);
+}
 </script>
 
 ]]>
